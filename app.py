@@ -998,5 +998,5 @@ def internal_server_error(e):
 # -------------------------------------------------------------
 
 if __name__ == '__main__':
-    # Run locally on port 5000 (standard for development and submission)
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # host='0.0.0.0' allows access from localhost and any device on the same local network / Wi-Fi
+    app.run(host='0.0.0.0', port=5000, debug=True)
