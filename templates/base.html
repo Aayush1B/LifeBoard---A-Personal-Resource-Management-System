@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{% block title %}LifeBoard — Personal Resource Management System{% endblock %}</title>
+  
+  <!-- PWA Manifest & Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  
+  <!-- Chart.js 4.x CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Mobile Drawer Overlay Backdrop -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-container">
+    {% if session.get('user_id') %}
+    <!-- Sidebar Navigation (Desktop + Mobile Drawer) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div style="flex: 1;">
+          <div class="brand-name">LifeBoard</div>
+          <div class="brand-sub">PRMS Pro v2.0</div>
+        </div>
+        <button class="btn-icon mobile-drawer-close" id="mobileDrawerClose" style="color: #94a3b8; display: none;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-nav">
+        <div class="nav-section-title">Core Modules</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('health') }}" class="nav-item {% if request.path.startswith('/health') %}active{% endif %}">
+          <i class="fa-solid fa-heart-pulse"></i>
+          <span>Health & Fitness</span>
+        </a>
+        <a href="{{ url_for('tasks') }}" class="nav-item {% if request.path.startswith('/tasks') %}active{% endif %}">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Tasks & Schedule</span>
+        </a>
+        <a href="{{ url_for('finance') }}" class="nav-item {% if request.path.startswith('/finance') %}active{% endif %}">
+          <i class="fa-solid fa-wallet"></i>
+          <span>Personal Finance</span>
+        </a>
+        <a href="{{ url_for('calendar_view') }}" class="nav-item {% if request.path.startswith('/calendar') %}active{% endif %}">
+          <i class="fa-regular fa-calendar-days"></i>
+          <span>Life Calendar</span>
+        </a>
+
+        <div class="nav-section-title">Account & Insights</div>
+        <a href="{{ url_for('profile') }}" class="nav-item {% if request.path == '/profile' %}active{% endif %}">
+          <i class="fa-solid fa-user"></i>
+          <span>You (Profile)</span>
+        </a>
+        <a href="{{ url_for('reports') }}" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
+          <i class="fa-solid fa-file-lines"></i>
+          <span>Monthly Reports</span>
+        </a>
+
+        {% if session.get('role') == 'admin' %}
+        <div class="nav-section-title">Administration</div>
+        <a href="{{ url_for('admin_panel') }}" class="nav-item {% if request.path.startswith('/admin') %}active{% endif %}">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Admin Control</span>
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-snippet">
+          <div class="user-avatar">
+            {{ session.get('name', 'U')[:1] | upper }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ session.get('name', 'User') }}</div>
+            <div class="user-role">
+              {% if session.get('role') == 'admin' %}
+                <span style="color: #f87171; font-weight: 700;">Administrator</span>
+              {% else %}
+                <span>Member</span>
+              {% endif %}
+            </div>
+          </div>
+          <a href="{{ url_for('logout') }}" class="btn-icon" title="Logout" style="color: #cbd5e1;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </a>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper" style="{% if not session.get('user_id') %}margin-left: 0;{% endif %}">
+      {% if session.get('user_id') %}
+      <!-- Top Navigation Bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="page-title-group">
+            <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="page-subtitle">{{ today_date }}</div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Command Palette Trigger (Ctrl + K) -->
+          <button class="btn btn-secondary btn-sm desktop-only-btn" onclick="openCommandPalette()" title="Spotlight Command Palette (Ctrl + K)" style="gap: 6px; font-size: 12px; padding: 7px 12px;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i>
+            <span>Search</span>
+            <span class="cmd-kbd">Ctrl K</span>
+          </button>
+
+          <!-- In-App Notification Center Dropdown -->
+          <div style="position: relative;">
+            <button class="theme-toggle-btn" id="notificationBtn" onclick="toggleNotificationDropdown()" title="Notifications">
+              <i class="fa-regular fa-bell"></i>
+              {% if unread_notifications_count > 0 %}
+                <span class="notification-badge">{{ unread_notifications_count }}</span>
+              {% endif %}
+            </button>
+
+            <!-- Notification Dropdown Menu -->
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="notification-header">
+                <span style="font-weight: 800; font-size: 13px;">Notifications</span>
+                <span class="badge badge-primary">{{ unread_notifications_count }} New</span>
+              </div>
+              <div class="notification-list">
+                {% if notifications %}
+                  {% for n in notifications %}
+                  <a href="{{ n.link }}" class="notification-item {{ n.type }}">
+                    <i class="fa-solid {{ n.icon }}" style="font-size: 15px; margin-top: 2px;"></i>
+                    <div>
+                      <strong style="font-size: 12.5px; display: block;">{{ n.title }}</strong>
+                      <span style="font-size: 11.5px; color: var(--text-muted);">{{ n.text }}</span>
+                    </div>
+                  </a>
+                  {% endfor %}
+                {% else %}
+                  <div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 12.5px;">
+                    <i class="fa-regular fa-bell-slash" style="font-size: 24px; margin-bottom: 6px; color: var(--primary);"></i>
+                    <p>All caught up! No active alerts.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Dark/Light Mode Switcher -->
+          <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+          </button>
+
+          <!-- Voice Assistant Button -->
+          <button class="btn-voice-header" onclick="startVoiceAssistant()" title="AI Voice Command Assistant">
+            <i class="fa-solid fa-microphone"></i>
+            <span class="desktop-only-text">Voice Log</span>
+          </button>
+
+          <!-- Quick Log Modal Button -->
+          <button class="btn-quick-add" onclick="openModal('quickActionModal')">
+            <i class="fa-solid fa-plus"></i>
+            <span>Quick Log</span>
+          </button>
+
+          <a href="{{ url_for('profile') }}" class="btn-icon desktop-only-btn" title="My Profile">
+            <i class="fa-solid fa-circle-user" style="font-size: 20px;"></i>
+          </a>
+          <a href="{{ url_for('logout') }}" class="btn-icon danger desktop-only-btn" title="Sign out">
+            <i class="fa-solid fa-power-off"></i>
+          </a>
+        </div>
+      </header>
+      {% endif %}
+
+      <!-- Main Page Container -->
+      <main class="page-content">
+        <!-- Flash Message Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                {% if category == 'success' %}
+                  <i class="fa-solid fa-circle-check"></i>
+                {% elif category == 'danger' %}
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                {% elif category == 'warning' %}
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                {% else %}
+                  <i class="fa-solid fa-circle-info"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+              </div>
+              <button type="button" class="alert-close" aria-label="Close">&times;</button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% if session.get('user_id') %}
+  <!-- Smartphone Native Bottom Navigation Bar (Mobile only) -->
+  <nav class="mobile-bottom-nav">
+    <a href="{{ url_for('dashboard') }}" class="mobile-nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Home</span>
+    </a>
+    <a href="{{ url_for('health') }}" class="mobile-nav-link {% if request.path.startswith('/health') %}active{% endif %}">
+      <i class="fa-solid fa-heart-pulse"></i>
+      <span>Health</span>
+    </a>
+
+    <!-- Center Floating Voice Assistant Button -->
+    <button class="mobile-nav-voice-btn" onclick="startVoiceAssistant()" aria-label="Voice Command Assistant" title="Tap to Speak">
+      <i class="fa-solid fa-microphone"></i>
+    </button>
+
+    <a href="{{ url_for('tasks') }}" class="mobile-nav-link {% if request.path.startswith('/tasks') %}active{% endif %}">
+      <i class="fa-solid fa-list-check"></i>
+      <span>Tasks</span>
+    </a>
+    <a href="{{ url_for('calendar_view') }}" class="mobile-nav-link {% if request.path.startswith('/calendar') %}active{% endif %}">
+      <i class="fa-regular fa-calendar-days"></i>
+      <span>Calendar</span>
+    </a>
+  </nav>
+
+  <!-- Universal Command Palette Modal (Ctrl + K) -->
+  <div class="cmd-palette-overlay" id="commandPaletteOverlay" onclick="if(event.target===this) closeCommandPalette();">
+    <div class="cmd-palette-box">
+      <div class="cmd-palette-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="commandPaletteInput" class="cmd-palette-input" placeholder="Type a command or search (e.g. gym, task, spent, report)..." oninput="filterCommandPalette(this.value)">
+        <span class="cmd-kbd">ESC</span>
+      </div>
+      <div class="cmd-palette-list" id="commandPaletteList">
+        <div class="cmd-palette-group-title">⚡ Quick Actions</div>
+        <div class="cmd-palette-item" onclick="closeCommandPalette(); startVoiceAssistant();" data-keywords="voice speak mic microphone talk ai fast log">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-microphone" style="color: #6366f1;"></i>
+            <span><strong>Voice Fast Logger</strong> — Speak any workout, task, or expense</span>
+          </div>
+          <span class="cmd-kbd">Mic</span>
+        </div>
+        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logWorkoutModal');" data-keywords="gym workout exercise run running cardio fitness calories burned">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-dumbbell" style="color: #4f46e5;"></i>
+            <span>Log a Workout</span>
+          </div>
+          <span class="badge badge-primary">Health</span>
+        </div>
+        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addTaskModal');" data-keywords="task todo schedule deadline project urgent create">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-list-check" style="color: #ea580c;"></i>
+            <span>Create a Task</span>
+          </div>
+          <span class="badge badge-warning">Task</span>
+        </div>
+        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logExpenseModal');" data-keywords="spent spend expense food transport money cost payment rupees inr">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-indian-rupee-sign" style="color: #10b981;"></i>
+            <span>Record an Expense</span>
+          </div>
+          <span class="badge badge-success">Finance</span>
+        </div>
+        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addHabitModal');" data-keywords="habit streak water read daily routine">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-fire" style="color: #ef4444;"></i>
+            <span>Add Daily Habit</span>
+          </div>
+          <span class="badge badge-danger">Habit</span>
+        </div>
+
+        <div class="cmd-palette-group-title">🚀 Navigate Modules</div>
+        <a href="{{ url_for('dashboard') }}" class="cmd-palette-item" data-keywords="home dashboard overview metrics lifescore">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Dashboard Overview</span>
+          </div>
+        </a>
+        <a href="{{ url_for('calendar_view') }}" class="cmd-palette-item" data-keywords="calendar schedule dates month agenda">
+          <div class="cmd-palette-item-left">
+            <i class="fa-regular fa-calendar-days"></i>
+            <span>Synchronized Life Calendar</span>
+          </div>
+        </a>
+        <a href="{{ url_for('reports') }}" class="cmd-palette-item" data-keywords="reports print monthly consolidated export pdf">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>Monthly Reports</span>
+          </div>
+        </a>
+        <a href="{{ url_for('profile') }}" class="cmd-palette-item" data-keywords="profile user settings password account you">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-user"></i>
+            <span>You (Profile & Stats)</span>
+          </div>
+        </a>
+
+        <div class="cmd-palette-group-title">📊 Data Exports (CSV)</div>
+        <a href="{{ url_for('export_csv', module_name='workouts') }}" class="cmd-palette-item" data-keywords="export download csv excel workouts health">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+            <span>Export Workouts to CSV</span>
+          </div>
+          <span class="cmd-kbd">CSV</span>
+        </a>
+        <a href="{{ url_for('export_csv', module_name='tasks') }}" class="cmd-palette-item" data-keywords="export download csv excel tasks">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+            <span>Export Tasks to CSV</span>
+          </div>
+          <span class="cmd-kbd">CSV</span>
+        </a>
+        <a href="{{ url_for('export_csv', module_name='finance') }}" class="cmd-palette-item" data-keywords="export download csv excel expenses finance">
+          <div class="cmd-palette-item-left">
+            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+            <span>Export Expenses to CSV</span>
+          </div>
+          <span class="cmd-kbd">CSV</span>
+        </a>
+
+        <div id="cmdPaletteNoResults" style="display: none; padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          No matching commands found. Try typing another keyword.
+        </div>
+      </div>
+      <div class="cmd-palette-footer">
+        <div>Navigate with <span class="cmd-kbd">↑</span> <span class="cmd-kbd">↓</span> & Select <span class="cmd-kbd">↵</span></div>
+        <div>Close <span class="cmd-kbd">ESC</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Voice Command Modal (Speech to Action) -->
+  <div class="modal-overlay" id="voiceCommandModal">
+    <div class="modal-content voice-modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-wand-magic-sparkles" style="color: #6366f1;"></i>
+          <span>Voice Fast Logger</span>
+        </h3>
+        <button type="button" class="btn-icon" onclick="closeVoiceAssistant()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" style="text-align: center; padding: 28px 20px;">
+        <!-- Voice Pulse Animation -->
+        <div class="voice-mic-container" id="voiceMicContainer" onclick="toggleVoiceRecording()">
+          <div class="voice-pulse-ring"></div>
+          <div class="voice-mic-circle" id="voiceMicCircle">
+            <i class="fa-solid fa-microphone" id="voiceMicIcon"></i>
+          </div>
+        </div>
+
+        <div id="voiceStatusText" style="font-size: 14px; font-weight: 700; color: #4f46e5; margin-top: 14px; margin-bottom: 6px;">
+          Listening... Speak your command
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">
+          e.g. <em>"Gym 45 mins 400 calories"</em>, <em>"Task submit report tomorrow urgent"</em>, <em>"Spent 250 on food"</em>
+        </p>
+
+        <!-- Transcript Display & Manual Editor -->
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" style="font-size: 12px; display: flex; justify-content: space-between;">
+            <span>Detected Speech Text:</span>
+            <span style="font-weight: normal; color: var(--text-muted);">You can also edit below</span>
+          </label>
+          <textarea id="voiceTranscriptInput" class="form-control" rows="2" placeholder="Listening for speech... or type fast here..."></textarea>
+        </div>
+
+        <!-- Result / Preview Box -->
+        <div id="voiceResultBox" style="display: none; margin-top: 14px; text-align: left;"></div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleVoiceRecording()" id="voiceRetryBtn">
+          <i class="fa-solid fa-rotate-right"></i> Try Again
+        </button>
+        <button type="button" class="btn btn-primary" id="voiceSubmitBtn" onclick="submitVoiceCommand()">
+          <i class="fa-solid fa-bolt"></i> Process & Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Quick Log Modal -->
+  <div class="modal-overlay" id="quickActionModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-bolt" style="color: #f59e0b; margin-right: 8px;"></i>Quick Action Menu</h3>
+        <button class="btn-icon" onclick="closeModal('quickActionModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 14px 18px; border-left: 4px solid #6366f1;" onclick="closeModal('quickActionModal'); startVoiceAssistant();">
+          <i class="fa-solid fa-microphone" style="color: #6366f1; width: 24px; font-size: 18px;"></i>
+          <div style="text-align: left;">
+            <strong style="display: block;">🎙️ Voice Quick Log (Fastest)</strong>
+            <span style="font-size: 12px; color: var(--text-muted);">Speak any workout, task, expense, or habit</span>
+          </div>
+        </button>
+        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 12px 18px;" onclick="closeModal('quickActionModal'); openModal('logWorkoutModal');">
+          <i class="fa-solid fa-dumbbell" style="color: #4f46e5; width: 24px;"></i>
+          <strong>Log a Workout</strong>
+        </button>
+        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 12px 18px;" onclick="closeModal('quickActionModal'); openModal('addTaskModal');">
+          <i class="fa-solid fa-list-check" style="color: #ea580c; width: 24px;"></i>
+          <strong>Create a New Task</strong>
+        </button>
+        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 12px 18px;" onclick="closeModal('quickActionModal'); openModal('logExpenseModal');">
+          <i class="fa-solid fa-indian-rupee-sign" style="color: #10b981; width: 24px;"></i>
+          <strong>Record an Expense</strong>
+        </button>
+        <button class="btn btn-secondary" style="justify-content: flex-start; padding: 12px 18px;" onclick="closeModal('quickActionModal'); openModal('addHabitModal');">
+          <i class="fa-solid fa-fire" style="color: #ef4444; width: 24px;"></i>
+          <strong>Add Daily Habit</strong>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable Quick Modals across pages -->
+  <!-- 1. Log Workout Modal -->
+  <div class="modal-overlay" id="logWorkoutModal">
+    <div class="modal-content">
+      <form action="{{ url_for('add_workout') }}" method="POST">
+        <div class="modal-header">
+          <h3 class="modal-title"><i class="fa-solid fa-dumbbell" style="color: var(--primary); margin-right: 8px;"></i>Log Workout</h3>
+          <button type="button" class="btn-icon" onclick="closeModal('logWorkoutModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Activity Type</label>
+            <select name="activity_type" class="form-control" required>
+              <option value="Gym">Gym / Weight Training</option>
+              <option value="Running">Running / Jogging</option>
+              <option value="Cycling">Cycling</option>
+              <option value="Swimming">Swimming</option>
+              <option value="Yoga">Yoga / Stretching</option>
+              <option value="Walking">Walking</option>
+              <option value="HIIT">HIIT / Cardio</option>
+              <option value="Sports">Sports / Badminton</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Duration (minutes)</label>
+              <input type="number" name="duration_mins" class="form-control" placeholder="e.g. 45" min="1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Calories Burned (kcal)</label>
+              <input type="number" name="calories" class="form-control" placeholder="e.g. 350" min="1" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" name="log_date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes (Optional)</label>
+            <input type="text" name="notes" class="form-control" placeholder="e.g. Chest & triceps, good intensity">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('logWorkoutModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Workout</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Add Task Modal -->
+  <div class="modal-overlay" id="addTaskModal">
+    <div class="modal-content">
+      <form action="{{ url_for('add_task') }}" method="POST">
+        <div class="modal-header">
+          <h3 class="modal-title"><i class="fa-solid fa-list-check" style="color: #ea580c; margin-right: 8px;"></i>Create New Task</h3>
+          <button type="button" class="btn-icon" onclick="closeModal('addTaskModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Task Title</label>
+            <input type="text" name="title" class="form-control" placeholder="e.g. Submit IGNOU Project Report" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description (Optional)</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Additional details or checklist items..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-control" required>
+              <option value="high">High Priority (Red)</option>
+              <option value="medium" selected>Medium Priority (Orange)</option>
+              <option value="low">Low Priority (Green)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Deadline Date</label>
+              <input type="date" name="deadline_date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deadline Time</label>
+              <input type="time" name="deadline_time" class="form-control" value="23:59" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addTaskModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Log Expense Modal -->
+  <div class="modal-overlay" id="logExpenseModal">
+    <div class="modal-content">
+      <form action="{{ url_for('add_expense') }}" method="POST">
+        <div class="modal-header">
+          <h3 class="modal-title"><i class="fa-solid fa-indian-rupee-sign" style="color: #10b981; margin-right: 8px;"></i>Record Expense</h3>
+          <button type="button" class="btn-icon" onclick="closeModal('logExpenseModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Amount (₹)</label>
+            <input type="number" step="0.01" name="amount" class="form-control" placeholder="e.g. 450.00" min="0.01" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control" required>
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Health">Health</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" name="expense_date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description (Optional)</label>
+            <input type="text" name="description" class="form-control" placeholder="e.g. Grocery items / metro recharge">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('logExpenseModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Add Habit Modal -->
+  <div class="modal-overlay" id="addHabitModal">
+    <div class="modal-content">
+      <form action="{{ url_for('add_habit') }}" method="POST">
+        <div class="modal-header">
+          <h3 class="modal-title"><i class="fa-solid fa-fire" style="color: #ef4444; margin-right: 8px;"></i>Add Daily Habit</h3>
+          <button type="button" class="btn-icon" onclick="closeModal('addHabitModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Habit Name</label>
+            <input type="text" name="habit_name" class="form-control" placeholder="e.g. Read 20 Pages, Drink 3L Water" required>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted);">
+            Habits are tracked daily. Completing a habit on consecutive days increments your streak count!
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addHabitModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Habit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Core JavaScript Scripts -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/modules.js') }}"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

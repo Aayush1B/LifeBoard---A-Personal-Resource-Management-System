@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks & Schedule — LifeBoard{% endblock %}
+{% block page_title %}Schedule & Task Management{% endblock %}
+
+{% block content %}
+<!-- Task Summary Statistics Bar (FR-26) -->
+<div class="grid-4">
+  <div class="card" style="padding: 16px 20px;">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Tasks</div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ summary.total }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">{{ summary.completion_rate }}% completed</div>
+  </div>
+
+  <div class="card" style="padding: 16px 20px;">
+    <div style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase;">Completed</div>
+    <div style="font-size: 24px; font-weight: 800; color: #15803d;">{{ summary.done }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">Accomplished</div>
+  </div>
+
+  <div class="card" style="padding: 16px 20px;">
+    <div style="font-size: 12px; font-weight: 700; color: #c2410c; text-transform: uppercase;">In Progress / Pending</div>
+    <div style="font-size: 24px; font-weight: 800; color: #c2410c;">{{ summary.pending + summary.in_progress }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">{{ summary.in_progress }} active now</div>
+  </div>
+
+  <div class="card" style="padding: 16px 20px;">
+    <div style="font-size: 12px; font-weight: 700; color: #991b1b; text-transform: uppercase;">Overdue / Urgent</div>
+    <div style="font-size: 24px; font-weight: 800; color: #991b1b;">{{ summary.overdue }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">{{ summary.due_soon }} due within 24h</div>
+  </div>
+</div>
+
+<!-- Task Header Controls & Filter Tabs (FR-25) -->
+<div class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <!-- Filter Tabs -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <a href="{{ url_for('tasks', status='all', view=view_mode) }}" class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+        All Tasks ({{ summary.total }})
+      </a>
+      <a href="{{ url_for('tasks', status='pending', view=view_mode) }}" class="btn btn-sm {% if current_filter == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}">
+        Pending ({{ summary.pending }})
+      </a>
+      <a href="{{ url_for('tasks', status='in_progress', view=view_mode) }}" class="btn btn-sm {% if current_filter == 'in_progress' %}btn-primary{% else %}btn-secondary{% endif %}">
+        In Progress ({{ summary.in_progress }})
+      </a>
+      <a href="{{ url_for('tasks', status='done', view=view_mode) }}" class="btn btn-sm {% if current_filter == 'done' %}btn-primary{% else %}btn-secondary{% endif %}">
+        Done ({{ summary.done }})
+      </a>
+      <a href="{{ url_for('tasks', status='overdue', view=view_mode) }}" class="btn btn-sm {% if current_filter == 'overdue' %}btn-danger{% else %}btn-secondary{% endif %}">
+        Overdue ({{ summary.overdue }})
+      </a>
+    </div>
+
+    <!-- Actions & View Switcher -->
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div style="background: #f1f5f9; padding: 3px; border-radius: 8px; display: flex; gap: 2px;">
+        <a href="{{ url_for('tasks', status=current_filter, view='list') }}" class="btn btn-sm {% if view_mode == 'list' %}btn-primary{% else %}btn-secondary{% endif %}" style="border: none;" title="List View">
+          <i class="fa-solid fa-list"></i>
+        </a>
+        <a href="{{ url_for('tasks', status=current_filter, view='board') }}" class="btn btn-sm {% if view_mode == 'board' %}btn-primary{% else %}btn-secondary{% endif %}" style="border: none;" title="Kanban Board View">
+          <i class="fa-solid fa-table-columns"></i>
+        </a>
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="openModal('importTaskCsvModal')" title="Import Tasks from CSV">
+          <i class="fa-solid fa-file-import"></i> Import CSV
+        </button>
+        <a href="{{ url_for('export_csv', module_name='tasks') }}" class="btn btn-secondary btn-sm" title="Export Tasks to CSV">
+          <i class="fa-solid fa-file-csv"></i> Export CSV
+        </a>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addTaskModal')">
+          <i class="fa-solid fa-plus"></i> New Task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if view_mode == 'board' %}
+<!-- Kanban Board View -->
+<div class="kanban-grid">
+  <!-- Column 1: Pending -->
+  <div class="kanban-col">
+    <div class="kanban-header">
+      <span><i class="fa-regular fa-circle" style="color: #64748b; margin-right: 6px;"></i>Pending</span>
+      <span class="badge badge-secondary">{{ pending_tasks | length }}</span>
+    </div>
+    {% for task in pending_tasks %}
+    <div class="kanban-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+        <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+        {% if task.is_overdue %}
+          <span class="badge badge-overdue">OVERDUE</span>
+        {% elif task.is_due_soon %}
+          <span class="badge badge-due-soon">Due Soon</span>
+        {% endif %}
+      </div>
+      <h4 style="font-size: 14px; margin-bottom: 6px;">{{ task.title }}</h4>
+      {% if task.description %}
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">{{ task.description }}</p>
+      {% endif %}
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        <i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}
+      </div>
+      <div style="display: flex; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
+        <form action="{{ url_for('update_task_status_route', task_id=task.task_id) }}" method="POST" style="margin: 0;">
+          <input type="hidden" name="status" value="in_progress">
+          <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;">Start</button>
+        </form>
+        <form action="{{ url_for('update_task_status_route', task_id=task.task_id) }}" method="POST" style="margin: 0;">
+          <input type="hidden" name="status" value="done">
+          <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px;"><i class="fa-solid fa-check"></i> Done</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Column 2: In Progress -->
+  <div class="kanban-col">
+    <div class="kanban-header">
+      <span><i class="fa-solid fa-spinner" style="color: #ea580c; margin-right: 6px;"></i>In Progress</span>
+      <span class="badge badge-secondary">{{ in_progress_tasks | length }}</span>
+    </div>
+    {% for task in in_progress_tasks %}
+    <div class="kanban-card" style="border-left: 3px solid #ea580c;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+        <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+        {% if task.is_overdue %}
+          <span class="badge badge-overdue">OVERDUE</span>
+        {% elif task.is_due_soon %}
+          <span class="badge badge-due-soon">Due Soon</span>
+        {% endif %}
+      </div>
+      <h4 style="font-size: 14px; margin-bottom: 6px;">{{ task.title }}</h4>
+      {% if task.description %}
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">{{ task.description }}</p>
+      {% endif %}
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        <i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}
+      </div>
+      <div style="display: flex; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
+        <form action="{{ url_for('update_task_status_route', task_id=task.task_id) }}" method="POST" style="margin: 0;">
+          <input type="hidden" name="status" value="done">
+          <button type="submit" class="btn btn-primary btn-sm" style="font-size: 11px;"><i class="fa-solid fa-check"></i> Complete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Column 3: Done -->
+  <div class="kanban-col">
+    <div class="kanban-header">
+      <span><i class="fa-solid fa-circle-check" style="color: var(--success); margin-right: 6px;"></i>Completed</span>
+      <span class="badge badge-secondary">{{ done_tasks | length }}</span>
+    </div>
+    {% for task in done_tasks %}
+    <div class="kanban-card" style="opacity: 0.75;">
+      <h4 style="font-size: 14px; text-decoration: line-through; margin-bottom: 6px;">{{ task.title }}</h4>
+      <div style="font-size: 11px; color: var(--text-muted);">
+        Completed on {{ task.completed_at or 'Recently' }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+<!-- List View (Default) -->
+<div class="card">
+  {% if tasks %}
+  <!-- Desktop Table View -->
+  <div class="table-responsive desktop-only-table">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th style="width: 40px;">Status</th>
+          <th>Task Details</th>
+          <th>Priority</th>
+          <th>Deadline</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr class="{% if t.status == 'done' %}task-item status-done{% endif %}">
+          <td>
+            <form action="{{ url_for('update_task_status_route', task_id=t.task_id) }}" method="POST" style="margin: 0;">
+              {% if t.status == 'done' %}
+                <input type="hidden" name="status" value="pending">
+                <button type="submit" class="btn-icon" title="Mark as Pending" style="color: var(--success);">
+                  <i class="fa-solid fa-circle-check" style="font-size: 18px;"></i>
+                </button>
+              {% else %}
+                <input type="hidden" name="status" value="done">
+                <button type="submit" class="btn-icon" title="Mark as Done" onclick="triggerConfetti()">
+                  <i class="fa-regular fa-circle" style="font-size: 18px;"></i>
+                </button>
+              {% endif %}
+            </form>
+          </td>
+
+          <td>
+            <div class="task-title" style="{% if t.status == 'done' %}text-decoration: line-through; color: var(--text-muted);{% endif %}">
+              {{ t.title }}
+            </div>
+            {% if t.description %}
+            <div style="font-size: 12px; color: var(--text-muted);">{{ t.description }}</div>
+            {% endif %}
+          </td>
+
+          <td>
+            <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
+          </td>
+
+          <td>
+            <div style="font-size: 13px; font-weight: 500; white-space: nowrap;">
+              {{ t.deadline_dt.strftime('%d %b %Y, %I:%M %p') }}
+            </div>
+            {% if t.is_overdue %}
+              <span class="badge badge-overdue" style="margin-top: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> OVERDUE</span>
+            {% elif t.is_due_soon %}
+              <span class="badge badge-due-soon" style="margin-top: 4px;"><i class="fa-solid fa-clock"></i> Due Soon</span>
+            {% endif %}
+          </td>
+
+          <td style="text-align: right; white-space: nowrap;">
+            {% if t.status != 'done' %}
+            <form action="{{ url_for('update_task_status_route', task_id=t.task_id) }}" method="POST" style="display: inline-block; margin-right: 6px;">
+              <input type="hidden" name="status" value="{% if t.status == 'pending' %}in_progress{% else %}done{% endif %}">
+              <button type="submit" class="btn btn-secondary btn-sm" {% if t.status == 'in_progress' %}onclick="triggerConfetti()"{% endif %}>
+                {% if t.status == 'pending' %}<i class="fa-solid fa-play" style="font-size: 10px;"></i> Start{% else %}<i class="fa-solid fa-check"></i> Done{% endif %}
+              </button>
+            </form>
+            {% endif %}
+
+            <button type="button" class="btn-icon" title="Edit Task" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}')">
+              <i class="fa-regular fa-pen-to-square"></i>
+            </button>
+
+            <form action="{{ url_for('delete_task_route', task_id=t.task_id) }}" method="POST" style="display: inline;" data-confirm="Are you sure you want to delete this task?">
+              <button type="submit" class="btn-icon danger" title="Delete Task">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Smartphone Adaptive Task Cards -->
+  <div class="mobile-card-list">
+    {% for t in tasks %}
+    <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}">
+      <div class="mobile-card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
+          {% if t.is_overdue %}
+            <span class="badge badge-overdue">OVERDUE</span>
+          {% elif t.is_due_soon %}
+            <span class="badge badge-due-soon">Due Soon</span>
+          {% endif %}
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);">{{ t.deadline_dt.strftime('%d %b, %I:%M %p') }}</span>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 10px; margin: 4px 0;">
+        <form action="{{ url_for('update_task_status_route', task_id=t.task_id) }}" method="POST" style="margin: 0;">
+          {% if t.status == 'done' %}
+            <input type="hidden" name="status" value="pending">
+            <button type="submit" class="habit-check-btn" style="background: var(--success); border-color: var(--success); color: white;">
+              <i class="fa-solid fa-check"></i>
+            </button>
+          {% else %}
+            <input type="hidden" name="status" value="done">
+            <button type="submit" class="habit-check-btn" onclick="triggerConfetti()">
+              <i class="fa-regular fa-circle" style="font-size: 14px;"></i>
+            </button>
+          {% endif %}
+        </form>
+        <div style="flex: 1;">
+          <div class="task-title" style="{% if t.status == 'done' %}text-decoration: line-through; color: var(--text-muted);{% endif %}">
+            {{ t.title }}
+          </div>
+          {% if t.description %}
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ t.description }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}')">
+          <i class="fa-regular fa-pen-to-square"></i> Edit
+        </button>
+        <form action="{{ url_for('delete_task_route', task_id=t.task_id) }}" method="POST" style="display: inline;" data-confirm="Delete this task?">
+          <button type="submit" class="btn btn-danger btn-sm">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+    <i class="fa-solid fa-list-check" style="font-size: 36px; color: var(--primary); margin-bottom: 12px;"></i>
+    <p>No tasks found for the selected filter.</p>
+    <button class="btn btn-primary btn-sm" style="margin-top: 10px;" onclick="openModal('addTaskModal')">
+      <i class="fa-solid fa-plus"></i> Create New Task
+    </button>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Edit Task Modal (FR-28) -->
+<div class="modal-overlay" id="editTaskModal">
+  <div class="modal-content">
+    <form id="editTaskForm" method="POST">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-pen-to-square" style="color: var(--primary); margin-right: 8px;"></i>Edit Task</h3>
+        <button type="button" class="btn-icon" onclick="closeModal('editTaskModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Task Title</label>
+          <input type="text" name="title" id="editTaskTitle" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (Optional)</label>
+          <textarea name="description" id="editTaskDescription" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select name="priority" id="editTaskPriority" class="form-control" required>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Deadline Date</label>
+            <input type="date" name="deadline_date" id="editTaskDate" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Deadline Time</label>
+            <input type="time" name="deadline_time" id="editTaskTime" class="form-control" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editTaskModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Import Tasks CSV Modal -->
+<div class="modal-overlay" id="importTaskCsvModal">
+  <div class="modal-content">
+    <form action="{{ url_for('import_csv', module_name='tasks') }}" method="POST" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-file-import" style="color: var(--primary); margin-right: 8px;"></i>Import Tasks from CSV</h3>
+        <button type="button" class="btn-icon" onclick="closeModal('importTaskCsvModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          Upload a CSV spreadsheet formatted with columns: <code>Title, Description, Priority (high/medium/low), Deadline</code>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">CSV File (.csv)</label>
+          <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('importTaskCsvModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Upload & Import</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

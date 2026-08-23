@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account — LifeBoard{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 30px auto;">
+  <div class="card" style="padding: 32px; box-shadow: var(--shadow-lg);">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div class="brand-logo" style="margin: 0 auto 12px; width: 44px; height: 44px;">
+        <i class="fa-solid fa-layer-group"></i>
+      </div>
+      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Create Your Account</h2>
+      <p style="font-size: 13px; color: var(--text-muted);">Join LifeBoard to organize your health, tasks, and finances</p>
+    </div>
+
+    <form action="{{ url_for('register') }}" method="POST" id="regForm">
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Priya Sharma" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input type="email" name="email" class="form-control" placeholder="priya@example.com" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Age (Optional)</label>
+          <input type="number" name="age" class="form-control" placeholder="e.g. 24" min="10" max="120">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone (Optional)</label>
+          <input type="tel" name="phone" class="form-control" placeholder="+91 9876543210">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" name="password" id="regPassword" class="form-control" placeholder="Min. 6 chars" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password *</label>
+          <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" placeholder="Re-enter password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px; margin-top: 8px;">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Register & Get Started</span>
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--text-muted);">
+      Already have an account? <a href="{{ url_for('login') }}" style="font-weight: 600;">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Client-side confirmation match check
+  document.getElementById('regForm').addEventListener('submit', function(e) {
+    const p1 = document.getElementById('regPassword').value;
+    const p2 = document.getElementById('regConfirmPassword').value;
+    if (p1 !== p2) {
+      e.preventDefault();
+      alert('Passwords do not match. Please verify.');
+    }
+  });
+</script>
+{% endblock %}

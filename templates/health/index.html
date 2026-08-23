@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Health & Fitness — LifeBoard{% endblock %}
+{% block page_title %}Health & Activity Management{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="grid-3">
+  <!-- Weekly Calories Stat -->
+  <div class="card" style="display: flex; align-items: center; gap: 18px;">
+    <div class="summary-icon-box health" style="width: 52px; height: 52px; font-size: 24px;">
+      <i class="fa-solid fa-fire-flame-curved"></i>
+    </div>
+    <div>
+      <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">THIS WEEK'S CALORIES (FR-14)</div>
+      <div style="font-size: 26px; font-weight: 800; color: var(--primary);">{{ weekly_stats.total_calories }} <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">kcal</span></div>
+      <div style="font-size: 12px; color: var(--text-muted);">{{ weekly_stats.workout_count }} workouts • {{ weekly_stats.total_duration }} mins active</div>
+    </div>
+  </div>
+
+  <!-- Active Habits Tracker Card -->
+  <div class="card" style="display: flex; align-items: center; gap: 18px;">
+    <div class="summary-icon-box habit" style="width: 52px; height: 52px; font-size: 24px;">
+      <i class="fa-solid fa-bolt"></i>
+    </div>
+    <div>
+      <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">DAILY HABITS TRACKED</div>
+      <div style="font-size: 26px; font-weight: 800; color: #15803d;">{{ habits | length }} <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">habits</span></div>
+      <div style="font-size: 12px; color: var(--text-muted);">Build daily streaks with 1-click check-in</div>
+    </div>
+  </div>
+
+  <!-- Quick Action Buttons -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: center; gap: 10px;">
+    <button class="btn btn-primary" onclick="openModal('logWorkoutModal')">
+      <i class="fa-solid fa-plus"></i> Log Workout
+    </button>
+    <button class="btn btn-secondary" onclick="openModal('addHabitModal')">
+      <i class="fa-solid fa-fire"></i> Add New Habit
+    </button>
+  </div>
+</div>
+
+<!-- Main 2-Column Health Layout -->
+<div class="grid-2-1">
+  <!-- Left Column: Workout Logger & History Table -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- 7-Day Workout Activity Chart -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Workout Frequency & Calorie Trend</span>
+        </h3>
+      </div>
+      <div style="height: 240px;">
+        <canvas id="healthWorkoutChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Workout Logs Table (FR-13) -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Workout History</span>
+        </h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('importWorkoutCsvModal')" title="Import Workouts from CSV">
+            <i class="fa-solid fa-file-import"></i> Import CSV
+          </button>
+          <a href="{{ url_for('export_csv', module_name='workouts') }}" class="btn btn-secondary btn-sm" title="Export Workouts to CSV">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </a>
+          <button class="btn btn-primary btn-sm" onclick="openModal('logWorkoutModal')">
+            <i class="fa-solid fa-plus"></i> Log Workout
+          </button>
+        </div>
+      </div>
+
+      {% if workouts %}
+      <!-- Desktop Table View -->
+      <div class="table-responsive desktop-only-table">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Activity</th>
+              <th>Duration</th>
+              <th>Calories</th>
+              <th>Notes</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in workouts %}
+            <tr>
+              <td style="font-weight: 600; white-space: nowrap;">{{ w.log_date }}</td>
+              <td>
+                <span class="badge badge-primary">
+                  {% if w.activity_type == 'Gym' %}🏋️ Gym
+                  {% elif w.activity_type == 'Running' %}🏃 Running
+                  {% elif w.activity_type == 'Cycling' %}🚴 Cycling
+                  {% elif w.activity_type == 'Swimming' %}🏊 Swimming
+                  {% elif w.activity_type == 'Yoga' %}🧘 Yoga
+                  {% else %}⚡ {{ w.activity_type }}
+                  {% endif %}
+                </span>
+              </td>
+              <td>{{ w.duration_mins }} mins</td>
+              <td style="font-weight: 700; color: #dc2626;">{{ w.calories }} kcal</td>
+              <td style="color: var(--text-muted); font-size: 12.5px;">{{ w.notes or '—' }}</td>
+              <td style="text-align: right;">
+                <form action="{{ url_for('delete_workout', workout_id=w.workout_id) }}" method="POST" style="display: inline;" data-confirm="Are you sure you want to delete this workout log?">
+                  <button type="submit" class="btn-icon danger" title="Delete Workout">
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Smartphone Adaptive Card View -->
+      <div class="mobile-card-list">
+        {% for w in workouts %}
+        <div class="mobile-data-card">
+          <div class="mobile-card-header">
+            <span class="badge badge-primary">
+              {% if w.activity_type == 'Gym' %}🏋️ Gym
+              {% elif w.activity_type == 'Running' %}🏃 Running
+              {% elif w.activity_type == 'Cycling' %}🚴 Cycling
+              {% elif w.activity_type == 'Swimming' %}🏊 Swimming
+              {% elif w.activity_type == 'Yoga' %}🧘 Yoga
+              {% else %}⚡ {{ w.activity_type }}
+              {% endif %}
+            </span>
+            <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">{{ w.log_date }}</span>
+          </div>
+          <div class="mobile-card-body">
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+                {{ w.duration_mins }} minutes
+              </div>
+              {% if w.notes %}
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">{{ w.notes }}</div>
+              {% endif %}
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 15px; font-weight: 800; color: #dc2626;">{{ w.calories }} kcal</div>
+              <form action="{{ url_for('delete_workout', workout_id=w.workout_id) }}" method="POST" style="margin-top: 4px;" data-confirm="Delete this workout log?">
+                <button type="submit" class="btn-icon danger" style="width: 28px; height: 28px;" title="Delete">
+                  <i class="fa-regular fa-trash-can" style="font-size: 12px;"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 32px; color: var(--text-muted);">
+        <i class="fa-solid fa-dumbbell" style="font-size: 32px; color: var(--primary); margin-bottom: 8px;"></i>
+        <p>No workouts recorded yet. Click <strong>Log Workout</strong> above to start tracking!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Habit Tracker & BMI Calculator -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- Daily Habit Tracker (FR-15, FR-16, FR-17) -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa-solid fa-fire" style="color: #ef4444;"></i>
+          <span>Daily Habits & Streaks</span>
+        </h3>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('addHabitModal')">
+          <i class="fa-solid fa-plus"></i> Add
+        </button>
+      </div>
+
+      {% if habits %}
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for h in habits %}
+        <div class="habit-item {% if h.done_today %}done{% endif %}">
+          <div class="habit-left">
+            <form action="{{ url_for('toggle_habit', habit_id=h.habit_id) }}" method="POST" style="margin: 0;">
+              <button type="submit" class="habit-check-btn" title="{% if h.done_today %}Uncheck Habit{% else %}Mark Complete Today{% endif %}" onclick="triggerConfetti()">
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </form>
+            <div>
+              <div class="habit-name">{{ h.habit_name }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">
+                {% if h.done_today %}
+                  <span style="color: var(--success); font-weight: 600;">Completed today!</span>
+                {% else %}
+                  <span>Not completed yet today</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="streak-pill">
+              <i class="fa-solid fa-fire"></i>
+              <span>{{ h.streak_count }} day streak</span>
+            </div>
+            <form action="{{ url_for('delete_habit', habit_id=h.habit_id) }}" method="POST" style="display: inline;" data-confirm="Delete this habit and all streak logs?">
+              <button type="submit" class="btn-icon danger" title="Delete Habit">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+        <p>No habits added yet. Track your daily hydration, reading, or exercise routines!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- BMI Calculator & Categorizer (FR-18, FR-19, FR-20) -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa-solid fa-weight-scale" style="color: #0ea5e9;"></i>
+          <span>BMI Calculator</span>
+        </h3>
+      </div>
+
+      <form action="{{ url_for('calculate_bmi') }}" method="POST" id="bmiForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input type="number" step="0.1" name="height_cm" id="bmiHeight" class="form-control" placeholder="175" required oninput="updateBmiPreview()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" step="0.1" name="weight_kg" id="bmiWeight" class="form-control" placeholder="70" required oninput="updateBmiPreview()">
+          </div>
+        </div>
+
+        <div id="bmiPreview" style="margin-bottom: 14px;"></div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <i class="fa-solid fa-calculator"></i> Calculate & Save BMI
+        </button>
+      </form>
+
+      <!-- Last 10 BMI Records History (FR-20) -->
+      {% if bmi_history %}
+      <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Recent BMI History (Last 10)</div>
+        <table class="table-custom" style="font-size: 12px;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>BMI</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in bmi_history %}
+            <tr>
+              <td style="color: var(--text-muted);">{{ b.recorded_date[:10] }}</td>
+              <td style="font-weight: 700;">{{ b.bmi_value }}</td>
+              <td>
+                <span class="badge {% if b.category == 'Normal' %}badge-success{% elif b.category == 'Obese' %}badge-danger{% else %}badge-warning{% endif %}">
+                  {{ b.category }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+  </div>
+</div>
+
+<!-- Import Workouts CSV Modal -->
+<div class="modal-overlay" id="importWorkoutCsvModal">
+  <div class="modal-content">
+    <form action="{{ url_for('import_csv', module_name='workouts') }}" method="POST" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-file-import" style="color: var(--primary); margin-right: 8px;"></i>Import Workouts from CSV</h3>
+        <button type="button" class="btn-icon" onclick="closeModal('importWorkoutCsvModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          Select a CSV file formatted with columns: <code>Activity Type, Duration (mins), Calories, Date, Notes</code>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">CSV File (.csv)</label>
+          <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('importWorkoutCsvModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Upload & Import</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const healthLabels = {{ workout_chart.labels | tojson }};
+  const healthCalories = {{ workout_chart.calories | tojson }};
+  const healthDuration = {{ workout_chart.duration | tojson }};
+
+  initWorkoutBarChart('healthWorkoutChart', healthLabels, healthCalories, healthDuration);
+</script>
+{% endblock %}

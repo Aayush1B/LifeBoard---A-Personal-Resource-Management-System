@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Reports — LifeBoard{% endblock %}
+{% block page_title %}Monthly Performance & Analytics Report{% endblock %}
+
+{% block content %}
+<!-- Header Bar with Month Picker and Print Action (No-print class for UI controls) -->
+<div class="card no-print" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <i class="fa-solid fa-file-invoice" style="font-size: 24px; color: var(--primary);"></i>
+      <div>
+        <h3 style="font-size: 17px; margin-bottom: 2px;">Monthly Report for {{ report.month_name }}</h3>
+        <p style="font-size: 12px; color: var(--text-muted);">Consolidated multi-module report for IGNOU BCSP-064 analysis</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <!-- Month & Year Filter Form -->
+      <form action="{{ url_for('reports') }}" method="GET" style="display: flex; gap: 8px; margin: 0;">
+        <select name="month" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;">
+          {% for m in range(1, 13) %}
+          <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+            {{ ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1] }}
+          </option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-control" style="width: auto; padding: 6px 12px; font-size: 13px;">
+          {% for y in range(current_year - 1, current_year + 2) %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      </form>
+
+      <!-- Print Button -->
+      <button class="btn btn-primary btn-sm btn-print" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> Print / Save PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Printable Report Container -->
+<div class="printable-report" style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Report Header (Clean for print) -->
+  <div class="card" style="border-left: 4px solid var(--primary);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">LifeBoard — Monthly Performance Report</h2>
+        <div style="font-size: 13px; color: var(--text-muted);">
+          User: <strong>{{ session.get('name') }}</strong> ({{ session.get('email') }}) • Reporting Period: <strong>{{ report.month_name }}</strong>
+        </div>
+      </div>
+      <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
+        Generated on: {{ today_date }}
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Health & Fitness Report -->
+  <div class="card">
+    <div class="card-header" style="border-bottom: 2px solid #e0e7ff; padding-bottom: 12px;">
+      <h3 class="card-title">
+        <i class="fa-solid fa-heart-pulse" style="color: #4338ca;"></i>
+        <span>1. Health & Physical Activity Analysis</span>
+      </h3>
+      <span class="badge badge-primary">{{ report.health.workouts_count }} Workouts</span>
+    </div>
+
+    <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Calories Burned</div>
+        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.total_calories }} kcal</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Active Time</div>
+        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.total_duration_mins }} mins</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Primary Activity</div>
+        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.top_activity }}</div>
+      </div>
+    </div>
+
+    <!-- Habit Streaks in Month -->
+    <h4 style="font-size: 14px; margin-bottom: 10px;">Habit Adherence in {{ report.month_name }}</h4>
+    {% if report.health.habits %}
+    <table class="table-custom" style="margin-bottom: 14px;">
+      <thead>
+        <tr>
+          <th>Habit Name</th>
+          <th>Completions this Month</th>
+          <th>Current Streak</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in report.health.habits %}
+        <tr>
+          <td style="font-weight: 600;">{{ h.habit_name }}</td>
+          <td>{{ h.completions }} days</td>
+          <td><span class="badge badge-success">{{ h.streak_count }} days streak</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-size: 13px; color: var(--text-muted);">No habit logs recorded in this period.</p>
+    {% endif %}
+  </div>
+
+  <!-- SECTION 2: Task & Schedule Report -->
+  <div class="card">
+    <div class="card-header" style="border-bottom: 2px solid #ffedd5; padding-bottom: 12px;">
+      <h3 class="card-title">
+        <i class="fa-solid fa-list-check" style="color: #c2410c;"></i>
+        <span>2. Tasks & Deadline Schedule Breakdown</span>
+      </h3>
+      <span class="badge badge-warning">{{ report.tasks.completion_rate }}% Completion Rate</span>
+    </div>
+
+    <div class="grid-4" style="margin-top: 14px; margin-bottom: 18px;">
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Tasks</div>
+        <div style="font-size: 20px; font-weight: 800;">{{ report.tasks.total }}</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: #15803d; text-transform: uppercase;">Completed</div>
+        <div style="font-size: 20px; font-weight: 800; color: #15803d;">{{ report.tasks.done }}</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Pending / Active</div>
+        <div style="font-size: 20px; font-weight: 800; color: #c2410c;">{{ report.tasks.pending + report.tasks.in_progress }}</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">High Priority</div>
+        <div style="font-size: 20px; font-weight: 800; color: #b91c1c;">{{ report.tasks.high_priority }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Financial Summary & Budget Report -->
+  <div class="card">
+    <div class="card-header" style="border-bottom: 2px solid #fef08a; padding-bottom: 12px;">
+      <h3 class="card-title">
+        <i class="fa-solid fa-wallet" style="color: #854d0e;"></i>
+        <span>3. Personal Financial Report & Budget Adherence</span>
+      </h3>
+      {% if report.finance.summary.is_over_budget %}
+        <span class="badge badge-danger">Over Budget</span>
+      {% else %}
+        <span class="badge badge-success">Within Budget</span>
+      {% endif %}
+    </div>
+
+    <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Monthly Budget</div>
+        <div style="font-size: 20px; font-weight: 800;">₹{{ "{:,.2f}".format(report.finance.summary.budget) }}</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Total Expenses</div>
+        <div style="font-size: 20px; font-weight: 800; color: #b91c1c;">₹{{ "{:,.2f}".format(report.finance.summary.spent) }}</div>
+      </div>
+      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: #15803d; text-transform: uppercase;">Net Savings / Deficit</div>
+        <div style="font-size: 20px; font-weight: 800; color: {% if report.finance.summary.is_over_budget %}#dc2626{% else %}#15803d{% endif %};">
+          ₹{{ "{:,.2f}".format(report.finance.summary.savings) }}
+        </div>
+      </div>
+    </div>
+
+    <h4 style="font-size: 14px; margin-bottom: 10px;">Category Breakdown</h4>
+    {% if report.finance.categories %}
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Transactions</th>
+          <th>Total Amount (₹)</th>
+          <th>% of Spending</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in report.finance.categories %}
+        {% set cat_pct = (cat.total / report.finance.summary.spent * 100) | round(1) if report.finance.summary.spent > 0 else 0 %}
+        <tr>
+          <td style="font-weight: 600;">{{ cat.category }}</td>
+          <td>{{ cat.count }}</td>
+          <td style="font-weight: 700;">₹{{ "{:,.2f}".format(cat.total) }}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>{{ cat_pct }}%</span>
+              <div class="progress-bar-container" style="width: 80px; height: 6px;">
+                <div class="progress-bar-fill primary" style="width: {{ cat_pct }}%;"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-size: 13px; color: var(--text-muted);">No expenses recorded in this period.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

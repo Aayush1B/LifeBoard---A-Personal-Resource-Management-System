@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}403 Forbidden — LifeBoard{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 60px auto; text-align: center;">
+  <div class="card" style="padding: 40px;">
+    <div style="font-size: 64px; color: #dc2626; margin-bottom: 16px;">
+      <i class="fa-solid fa-ban"></i>
+    </div>
+    <h2 style="font-size: 24px; margin-bottom: 10px;">403 — Access Forbidden</h2>
+    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+      You do not have administrative privileges to access this area (FR-39).
+    </p>
+    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Return to Dashboard
+      </a>
+      <a href="{{ url_for('admin_verify') }}" class="btn btn-danger">
+        <i class="fa-solid fa-lock"></i> Admin Verification
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

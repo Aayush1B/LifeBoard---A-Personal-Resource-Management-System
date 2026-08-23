@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Personal Finance — LifeBoard{% endblock %}
+{% block page_title %}Personal Finance Management{% endblock %}
+
+{% block content %}
+<!-- Budget Status Banner (FR-33, FR-34, FR-38) -->
+{% if summary.is_over_budget %}
+<div class="alert alert-danger" style="margin-bottom: 24px;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <i class="fa-solid fa-circle-exclamation" style="font-size: 20px;"></i>
+    <div>
+      <div style="font-weight: 700; font-size: 15px;">Budget Breach Alert (FR-34)</div>
+      <div>You have exceeded your monthly limit! <strong style="color: #ffffff; background: #991b1b; padding: 2px 8px; border-radius: 4px;">Over Budget by ₹{{ "{:,.2f}".format(summary.over_budget_amount) }}</strong></div>
+    </div>
+  </div>
+</div>
+{% elif summary.is_warning %}
+<div class="alert alert-warning" style="margin-bottom: 24px;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
+    <div>
+      <div style="font-weight: 700; font-size: 15px;">Spending Warning (FR-33)</div>
+      <div>Caution: You have utilized <strong>{{ summary.actual_percent }}%</strong> of your monthly budget limit!</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Finance Summary Cards Row (FR-31, FR-32, FR-37, FR-38) -->
+<div class="grid-4">
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Monthly Budget</div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">₹{{ "{:,.2f}".format(summary.budget) }}</div>
+    <button class="btn btn-secondary btn-sm" style="margin-top: 8px; font-size: 11px;" onclick="openModal('setBudgetModal')">
+      <i class="fa-solid fa-pen"></i> Adjust Budget
+    </button>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Total Spent</div>
+    <div style="font-size: 24px; font-weight: 800; color: #b91c1c;">₹{{ "{:,.2f}".format(summary.spent) }}</div>
+    <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">{{ summary.expense_count }} transactions recorded</div>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Monthly Savings (FR-37)</div>
+    {% if summary.is_over_budget %}
+      <div style="font-size: 24px; font-weight: 800; color: #dc2626;">-₹{{ "{:,.2f}".format(summary.over_budget_amount) }}</div>
+      <div style="font-size: 11px; color: #dc2626; font-weight: 600; margin-top: 8px;">Over Budget (Deficit)</div>
+    {% else %}
+      <div style="font-size: 24px; font-weight: 800; color: #15803d;">₹{{ "{:,.2f}".format(summary.savings) }}</div>
+      <div style="font-size: 11px; color: #15803d; font-weight: 600; margin-top: 8px;">Savings Buffer Remaining</div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Budget Utilization ({{ summary.actual_percent }}%)</div>
+    <div class="progress-bar-container" style="height: 12px;">
+      <div class="progress-bar-fill {{ summary.progress_class }}" style="width: {{ summary.percent_spent }}%;"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-top: 10px;" onclick="openModal('logExpenseModal')">
+      <i class="fa-solid fa-plus"></i> Record Expense
+    </button>
+  </div>
+</div>
+
+<!-- Charts Row (FR-35 Category Pie & FR-36 7-Day Spending) -->
+<div class="grid-2">
+  <!-- Category Spending Pie/Doughnut Chart (FR-35) -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Spending by Category (Current Month)</span>
+      </h3>
+    </div>
+    <div style="height: 250px;">
+      <canvas id="financeCategoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Daily Spending Bar Chart (FR-36) -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa-solid fa-chart-column"></i>
+        <span>Daily Spending (Last 7 Days)</span>
+      </h3>
+    </div>
+    <div style="height: 250px;">
+      <canvas id="financeDailyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Ledger Table (FR-29, FR-30) -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i class="fa-solid fa-receipt"></i>
+      <span>Expense Ledger</span>
+    </h3>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="openModal('importExpenseCsvModal')" title="Import Expenses from CSV">
+        <i class="fa-solid fa-file-import"></i> Import CSV
+      </button>
+      <a href="{{ url_for('export_csv', module_name='finance') }}" class="btn btn-secondary btn-sm" title="Export Expenses to CSV">
+        <i class="fa-solid fa-file-csv"></i> Export CSV
+      </a>
+      <button class="btn btn-primary btn-sm" onclick="openModal('logExpenseModal')">
+        <i class="fa-solid fa-plus"></i> Record Expense
+      </button>
+    </div>
+  </div>
+
+  {% if expenses %}
+  <!-- Desktop Table View -->
+  <div class="table-responsive desktop-only-table">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Amount (₹)</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expenses %}
+        <tr>
+          <td style="font-weight: 600; white-space: nowrap;">{{ exp.expense_date }}</td>
+          <td>
+            <span class="badge {% if exp.category == 'Food' %}badge-warning{% elif exp.category == 'Transport' %}badge-secondary{% elif exp.category == 'Health' %}badge-success{% else %}badge-primary{% endif %}">
+              {% if exp.category == 'Food' %}🍔 Food
+              {% elif exp.category == 'Transport' %}🚗 Transport
+              {% elif exp.category == 'Health' %}💊 Health
+              {% elif exp.category == 'Entertainment' %}🎬 Entertainment
+              {% else %}📦 Other
+              {% endif %}
+            </span>
+          </td>
+          <td style="color: var(--text-muted);">{{ exp.description or '—' }}</td>
+          <td style="font-weight: 800; color: #0f172a;">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+          <td style="text-align: right;">
+            <form action="{{ url_for('delete_expense_route', expense_id=exp.expense_id) }}" method="POST" style="display: inline;" data-confirm="Delete this expense record?">
+              <button type="submit" class="btn-icon danger" title="Delete Expense">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Smartphone Adaptive Expense Cards -->
+  <div class="mobile-card-list">
+    {% for exp in expenses %}
+    <div class="mobile-data-card">
+      <div class="mobile-card-header">
+        <span class="badge {% if exp.category == 'Food' %}badge-warning{% elif exp.category == 'Transport' %}badge-secondary{% elif exp.category == 'Health' %}badge-success{% else %}badge-primary{% endif %}">
+          {% if exp.category == 'Food' %}🍔 Food
+          {% elif exp.category == 'Transport' %}🚗 Transport
+          {% elif exp.category == 'Health' %}💊 Health
+          {% elif exp.category == 'Entertainment' %}🎬 Entertainment
+          {% else %}📦 Other
+          {% endif %}
+        </span>
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">{{ exp.expense_date }}</span>
+      </div>
+
+      <div class="mobile-card-body">
+        <div>
+          <div style="font-size: 15px; font-weight: 800; color: var(--text-main);">
+            ₹{{ "{:,.2f}".format(exp.amount) }}
+          </div>
+          {% if exp.description %}
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ exp.description }}</div>
+          {% endif %}
+        </div>
+        <form action="{{ url_for('delete_expense_route', expense_id=exp.expense_id) }}" method="POST" style="display: inline;" data-confirm="Delete this expense record?">
+          <button type="submit" class="btn-icon danger" style="width: 28px; height: 28px;" title="Delete">
+            <i class="fa-regular fa-trash-can" style="font-size: 12px;"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align: center; padding: 36px; color: var(--text-muted);">
+    <i class="fa-solid fa-wallet" style="font-size: 32px; color: var(--primary); margin-bottom: 8px;"></i>
+    <p>No expenses logged for this month. Track all your daily expenditures effortlessly!</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Adjust Budget Modal (FR-31) -->
+<div class="modal-overlay" id="setBudgetModal">
+  <div class="modal-content">
+    <form action="{{ url_for('set_budget') }}" method="POST">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-wallet" style="color: var(--primary); margin-right: 8px;"></i>Set Monthly Budget Limit</h3>
+        <button type="button" class="btn-icon" onclick="closeModal('setBudgetModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Monthly Spending Limit (₹)</label>
+          <input type="number" step="100" name="monthly_limit" class="form-control" value="{{ summary.budget }}" min="1" required>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-muted);">
+          Setting a monthly budget enables automatic 80% warning triggers and overspending alerts to help you maintain savings.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('setBudgetModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Budget</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Import Expenses CSV Modal -->
+<div class="modal-overlay" id="importExpenseCsvModal">
+  <div class="modal-content">
+    <form action="{{ url_for('import_csv', module_name='finance') }}" method="POST" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-file-import" style="color: var(--primary); margin-right: 8px;"></i>Import Expenses from CSV</h3>
+        <button type="button" class="btn-icon" onclick="closeModal('importExpenseCsvModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          Select a CSV spreadsheet formatted with columns: <code>Amount (₹), Category, Description, Date</code>.
+        </p>
+        <div class="form-group">
+          <label class="form-label">CSV File (.csv)</label>
+          <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('importExpenseCsvModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Upload & Import</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const pieCategories = {{ category_chart.categories | tojson }};
+  const pieAmounts = {{ category_chart.amounts | tojson }};
+  initFinancePieChart('financeCategoryChart', pieCategories, pieAmounts);
+
+  const dailyLabels = {{ daily_chart.labels | tojson }};
+  const dailyAmounts = {{ daily_chart.amounts | tojson }};
+  initDailySpendingChart('financeDailyChart', dailyLabels, dailyAmounts);
+</script>
+{% endblock %}

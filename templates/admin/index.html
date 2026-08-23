@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control Panel — LifeBoard{% endblock %}
+{% block page_title %}Administrator Control Panel{% endblock %}
+
+{% block content %}
+<!-- System-wide Stats (FR-40) -->
+<div class="grid-4">
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Users (FR-40)</div>
+    <div style="font-size: 26px; font-weight: 800; color: var(--primary);">{{ stats.total_users }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">Registered accounts</div>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Workouts</div>
+    <div style="font-size: 26px; font-weight: 800; color: #4338ca;">{{ stats.total_workouts }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">Activity entries logged</div>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Tasks Created</div>
+    <div style="font-size: 26px; font-weight: 800; color: #c2410c;">{{ stats.total_tasks }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">Tasks in database</div>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total System Expenses</div>
+    <div style="font-size: 26px; font-weight: 800; color: #15803d;">₹{{ "{:,.0f}".format(stats.total_spent_system) }}</div>
+    <div style="font-size: 11px; color: var(--text-muted);">{{ stats.total_expenses }} transactions</div>
+  </div>
+</div>
+
+<!-- Section 1: User Management (FR-41) -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i class="fa-solid fa-users-gear" style="color: var(--primary);"></i>
+      <span>Registered User Accounts (FR-41)</span>
+    </h3>
+    <span class="badge badge-primary">{{ users | length }} Total</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Activity Stats</th>
+          <th>Joined On</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><code>#{{ u.user_id }}</code></td>
+          <td style="font-weight: 600;">
+            {{ u.name }}
+            {% if u.age %}<span style="font-size: 11px; color: var(--text-muted);">({{ u.age }} yrs)</span>{% endif %}
+          </td>
+          <td>{{ u.email }}</td>
+          <td>
+            <span class="badge {% if u.role == 'admin' %}badge-danger{% else %}badge-primary{% endif %}">
+              {{ u.role }}
+            </span>
+          </td>
+          <td style="font-size: 12px; color: var(--text-muted);">
+            🏋️ {{ u.workout_count }} | 📋 {{ u.task_count }} | 💳 {{ u.expense_count }}
+          </td>
+          <td style="font-size: 12px; color: var(--text-muted);">{{ u.created_at[:10] }}</td>
+          <td style="text-align: right;">
+            {% if u.user_id != session.get('user_id') %}
+            <form action="{{ url_for('admin_delete_user', target_user_id=u.user_id) }}" method="POST" style="display: inline;" data-confirm="Are you sure you want to delete user '{{ u.name }}'? All associated workouts, habits, tasks, and expenses will be permanently removed!">
+              <button type="submit" class="btn btn-danger btn-sm" title="Delete User Account">
+                <i class="fa-regular fa-trash-can"></i> Delete
+              </button>
+            </form>
+            {% else %}
+            <span class="badge badge-secondary">Active Admin</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 2: Audit Logs (FR-42, FR-43) -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i class="fa-solid fa-clock-rotate-left" style="color: #64748b;"></i>
+      <span>System Audit Logs (Last 50 Events) (FR-42, FR-43)</span>
+    </h3>
+    <span class="badge badge-secondary">{{ logs | length }} Logged</span>
+  </div>
+
+  <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+    <table class="table-custom" style="font-size: 12.5px;">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>User</th>
+          <th>Module</th>
+          <th>Action</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="white-space: nowrap; color: var(--text-muted); font-family: monospace;">{{ log.timestamp }}</td>
+          <td>
+            <div style="font-weight: 600;">{{ log.user_name }}</div>
+            {% if log.user_email %}<div style="font-size: 11px; color: var(--text-muted);">{{ log.user_email }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-secondary">{{ log.module }}</span>
+          </td>
+          <td>
+            <code>{{ log.action }}</code>
+          </td>
+          <td style="color: var(--text-muted);">{{ log.details or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 3: Database Backup & Disaster Recovery -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i class="fa-solid fa-database" style="color: #0284c7;"></i>
+      <span>Database Backup & Snapshot Recovery</span>
+    </h3>
+    <span class="badge badge-success"><i class="fa-solid fa-shield"></i> SQLite 3NF Safe</span>
+  </div>
+
+  <div class="grid-2" style="margin-bottom: 0;">
+    <!-- 1. Download Backup -->
+    <div style="background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px;">
+      <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">
+        <i class="fa-solid fa-download" style="color: var(--primary); margin-right: 6px;"></i>Download Live Backup Snapshot
+      </h4>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+        Export an exact binary snapshot of <code>lifeboard.db</code> containing all users, workouts, tasks, and audit logs.
+      </p>
+      <a href="{{ url_for('download_database_backup') }}" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-cloud-arrow-down"></i> Download Backup (.db)
+      </a>
+    </div>
+
+    <!-- 2. Restore Backup -->
+    <div style="background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px;">
+      <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">
+        <i class="fa-solid fa-upload" style="color: #ea580c; margin-right: 6px;"></i>Restore Database from Snapshot
+      </h4>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+        Upload a valid <code>lifeboard_backup.db</code> file to restore state.
+      </p>
+      <form action="{{ url_for('restore_database_backup') }}" method="POST" enctype="multipart/form-data" data-confirm="WARNING: Restoring a backup snapshot will overwrite the current live database. Proceed?">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="file" name="backup_file" accept=".db" class="form-control" style="font-size: 12.5px; padding: 6px 10px;" required>
+          <button type="submit" class="btn btn-secondary btn-sm" style="white-space: nowrap;">
+            <i class="fa-solid fa-rotate-left"></i> Restore
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

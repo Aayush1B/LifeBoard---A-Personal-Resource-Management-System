@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar View — LifeBoard{% endblock %}
+{% block page_title %}Synchronized Life Calendar{% endblock %}
+
+{% block content %}
+<!-- Calendar Header Controls -->
+<div class="card" style="margin-bottom: 20px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <h2 style="font-size: 20px; font-weight: 800; color: var(--text-main);">
+        <i class="fa-regular fa-calendar-days" style="color: var(--primary); margin-right: 8px;"></i>
+        {{ cal_data.month_name }}
+      </h2>
+      <div style="display: flex; gap: 6px;">
+        {% set prev_month = cal_data.month - 1 if cal_data.month > 1 else 12 %}
+        {% set prev_year = cal_data.year if cal_data.month > 1 else cal_data.year - 1 %}
+        {% set next_month = cal_data.month + 1 if cal_data.month < 12 else 1 %}
+        {% set next_year = cal_data.year if cal_data.month < 12 else cal_data.year + 1 %}
+        <a href="{{ url_for('calendar_view', month=prev_month, year=prev_year) }}" class="btn btn-secondary btn-sm" title="Previous Month">
+          <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        <a href="{{ url_for('calendar_view', month=current_month, year=current_year) }}" class="btn btn-secondary btn-sm">
+          Today
+        </a>
+        <a href="{{ url_for('calendar_view', month=next_month, year=next_year) }}" class="btn btn-secondary btn-sm" title="Next Month">
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display: flex; gap: 12px; font-size: 12px; align-items: center; flex-wrap: wrap;">
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #4f46e5;"></span>
+        <strong style="color: var(--text-muted);">Workouts</strong>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #ea580c;"></span>
+        <strong style="color: var(--text-muted);">Tasks</strong>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+        <strong style="color: var(--text-muted);">Expenses</strong>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Grid -->
+<div class="card" style="padding: 16px;">
+  <!-- Day Names Header -->
+  <div class="calendar-grid-header">
+    <div>Mon</div>
+    <div>Tue</div>
+    <div>Wed</div>
+    <div>Thu</div>
+    <div>Fri</div>
+    <div>Sat</div>
+    <div>Sun</div>
+  </div>
+
+  <!-- Calendar Matrix Days -->
+  <div class="calendar-matrix">
+    {% for week in cal_data.calendar_matrix %}
+      {% for day in week %}
+        {% set day_str = day.strftime('%Y-%m-%d') %}
+        {% set is_current_month = (day.month == cal_data.month) %}
+        {% set is_today = (day_str == now.strftime('%Y-%m-%d')) %}
+        {% set day_events = cal_data.events_by_day.get(day_str, {'workouts': [], 'tasks': [], 'expenses': []}) %}
+        {% set total_events_count = (day_events.workouts | length) + (day_events.tasks | length) + (day_events.expenses | length) %}
+
+        <div class="calendar-day-cell {% if not is_current_month %}other-month{% endif %} {% if is_today %}is-today{% endif %}" onclick="openDayInspector('{{ day_str }}', '{{ day.strftime('%A, %d %B %Y') }}')">
+          <div class="cal-day-header">
+            <span class="cal-day-num {% if is_today %}today-badge{% endif %}">{{ day.day }}</span>
+            {% if total_events_count > 0 %}
+              <span class="cal-badge-count">{{ total_events_count }}</span>
+            {% endif %}
+          </div>
+
+          <div class="cal-events-list">
+            <!-- Workouts -->
+            {% for w in day_events.workouts[:2] %}
+              <div class="cal-pill workout" title="{{ w.activity_type }} ({{ w.duration_mins }}m, {{ w.calories }} kcal)">
+                🏋️ {{ w.activity_type }} <small>({{ w.calories }}k)</small>
+              </div>
+            {% endfor %}
+
+            <!-- Tasks -->
+            {% for t in day_events.tasks[:2] %}
+              <div class="cal-pill task priority-{{ t.priority }} {% if t.status == 'done' %}done{% endif %}" title="{{ t.title }}">
+                📋 {{ t.title | truncate(16) }}
+              </div>
+            {% endfor %}
+
+            <!-- Expenses -->
+            {% for e in day_events.expenses[:1] %}
+              <div class="cal-pill expense" title="{{ e.category }}: ₹{{ e.amount }}">
+                💳 ₹{{ "{:,.0f}".format(e.amount) }}
+              </div>
+            {% endfor %}
+
+            {% if total_events_count > 3 %}
+              <div style="font-size: 10px; color: var(--text-muted); text-align: right; font-weight: 600;">+{{ total_events_count - 3 }} more</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Day Inspector Interactive Modal -->
+<div class="modal-overlay" id="dayInspectorModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title" id="inspectorDateTitle">Day Details</h3>
+      <button type="button" class="btn-icon" onclick="closeModal('dayInspectorModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="inspectorModalBody" style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Content populated dynamically via JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('dayInspectorModal')">Close</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="closeModal('dayInspectorModal'); startVoiceAssistant();">
+        <i class="fa-solid fa-microphone"></i> Quick Voice Log
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // All calendar events passed from server
+  const calendarData = {{ cal_data.events_by_day | tojson }};
+
+  function openDayInspector(dateStr, formattedDate) {
+    document.getElementById('inspectorDateTitle').innerHTML = `<i class="fa-solid fa-calendar-day" style="color: var(--primary); margin-right: 8px;"></i>${formattedDate}`;
+    const body = document.getElementById('inspectorModalBody');
+    const day = calendarData[dateStr] || { workouts: [], tasks: [], expenses: [] };
+
+    let html = '';
+
+    // 1. Workouts
+    if (day.workouts && day.workouts.length > 0) {
+      html += `
+        <div>
+          <h4 style="font-size: 13px; text-transform: uppercase; color: #4338ca; font-weight: 700; margin-bottom: 8px;">
+            🏋️ Workouts (${day.workouts.length})
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+      `;
+      day.workouts.forEach(w => {
+        html += `
+          <div style="background: var(--bg-app); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 8px; font-size: 13px; display: flex; justify-content: space-between;">
+            <div>
+              <strong>${w.activity_type}</strong> (${w.duration_mins} mins)
+              ${w.notes ? `<div style="font-size: 11px; color: var(--text-muted);">${w.notes}</div>` : ''}
+            </div>
+            <strong style="color: #dc2626;">${w.calories} kcal</strong>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    // 2. Tasks
+    if (day.tasks && day.tasks.length > 0) {
+      html += `
+        <div>
+          <h4 style="font-size: 13px; text-transform: uppercase; color: #c2410c; font-weight: 700; margin-bottom: 8px;">
+            📋 Tasks & Deadlines (${day.tasks.length})
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+      `;
+      day.tasks.forEach(t => {
+        const isDone = t.status === 'done';
+        html += `
+          <div style="background: var(--bg-app); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="${isDone ? 'text-decoration: line-through; opacity: 0.7;' : ''}">
+              <strong>${t.title}</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">Due: ${t.deadline.substring(11, 16)}</div>
+            </div>
+            <span class="badge badge-priority-${t.priority}">${t.priority}</span>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    // 3. Expenses
+    if (day.expenses && day.expenses.length > 0) {
+      html += `
+        <div>
+          <h4 style="font-size: 13px; text-transform: uppercase; color: #15803d; font-weight: 700; margin-bottom: 8px;">
+            💳 Expenses (${day.expenses.length})
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+      `;
+      let dayTotal = 0;
+      day.expenses.forEach(e => {
+        dayTotal += parseFloat(e.amount);
+        html += `
+          <div style="background: var(--bg-app); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 8px; font-size: 13px; display: flex; justify-content: space-between;">
+            <div>
+              <strong>${e.category}</strong>
+              ${e.description ? `<div style="font-size: 11px; color: var(--text-muted);">${e.description}</div>` : ''}
+            </div>
+            <strong style="color: #0f172a;">₹${parseFloat(e.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+          </div>
+        `;
+      });
+      html += `
+        <div style="text-align: right; font-size: 12px; font-weight: 700; color: #15803d; margin-top: 4px;">
+          Day Total: ₹${dayTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+        </div>
+      </div></div>`;
+    }
+
+    if (!html) {
+      html = `
+        <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+          <i class="fa-regular fa-calendar-check" style="font-size: 32px; color: var(--primary); margin-bottom: 8px;"></i>
+          <p>No logged events on this date.</p>
+        </div>
+      `;
+    }
+
+    body.innerHTML = html;
+    openModal('dayInspectorModal');
+  }
+</script>
+{% endblock %}

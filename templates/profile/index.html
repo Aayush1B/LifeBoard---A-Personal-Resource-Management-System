@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}You (Profile) — LifeBoard{% endblock %}
+{% block page_title %}Your Profile & Account{% endblock %}
+
+{% block content %}
+<!-- Lifetime Accomplishment Summary Cards -->
+<div class="grid-4">
+  <div class="card" style="text-align: center; padding: 20px;">
+    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
+      <i class="fa-solid fa-dumbbell"></i>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ total_lifetime_workouts }}</div>
+    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Workouts Logged</div>
+    <div style="font-size: 11px; color: var(--primary); margin-top: 4px;">{{ total_lifetime_calories }} kcal burned</div>
+  </div>
+
+  <div class="card" style="text-align: center; padding: 20px;">
+    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: #ffedd5; color: #c2410c; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
+      <i class="fa-solid fa-fire"></i>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ max_streak }} <span style="font-size: 14px;">days</span></div>
+    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Best Habit Streak</div>
+    <div style="font-size: 11px; color: #ea580c; margin-top: 4px;">Consistency Master</div>
+  </div>
+
+  <div class="card" style="text-align: center; padding: 20px;">
+    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
+      <i class="fa-solid fa-check-double"></i>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ task_summary.done }}</div>
+    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Tasks Accomplished</div>
+    <div style="font-size: 11px; color: #15803d; margin-top: 4px;">{{ task_summary.completion_rate }}% Success Rate</div>
+  </div>
+
+  <div class="card" style="text-align: center; padding: 20px;">
+    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: #fef08a; color: #854d0e; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
+      <i class="fa-solid fa-coins"></i>
+    </div>
+    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">₹{{ "{:,.0f}".format(total_lifetime_spent) }}</div>
+    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Expenses Tracked</div>
+    <div style="font-size: 11px; color: #854d0e; margin-top: 4px;">Complete Transparency</div>
+  </div>
+</div>
+
+<!-- Gamification & Achievement Badges Showcase -->
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">
+        <i class="fa-solid fa-trophy" style="color: #f59e0b;"></i>
+        <span>Milestone Achievements & Leveling</span>
+      </h3>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+        Rank: <strong style="color: var(--primary);">{{ achievements.level }}</strong> • {{ achievements.unlocked_count }} of {{ achievements.total_badges }} Unlocked
+      </div>
+    </div>
+    <span class="badge badge-warning" style="font-size: 11px; padding: 6px 12px;">
+      {{ achievements.completion_rate }}% Completed
+    </span>
+  </div>
+
+  <div class="grid-3" style="margin-bottom: 0;">
+    {% for badge in achievements.badges %}
+    <div class="badge-card {% if badge.unlocked %}unlocked{% else %}locked{% endif %}">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div class="badge-icon-wrap" style="background: {% if badge.unlocked %}{{ badge.color }}20{% else %}var(--border-color){% endif %}; color: {% if badge.unlocked %}{{ badge.color }}{% else %}var(--text-muted){% endif %};">
+          <i class="fa-solid {{ badge.icon }}"></i>
+        </div>
+        {% if badge.unlocked %}
+          <span class="badge badge-success" style="font-size: 9.5px;"><i class="fa-solid fa-check"></i> UNLOCKED</span>
+        {% else %}
+          <span class="badge badge-secondary" style="font-size: 9.5px;"><i class="fa-solid fa-lock"></i> LOCKED</span>
+        {% endif %}
+      </div>
+      <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">{{ badge.title }}</div>
+      <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">{{ badge.description }}</div>
+      
+      <div class="progress-bar-container" style="height: 6px;">
+        <div class="progress-bar-fill {% if badge.unlocked %}success{% else %}primary{% endif %}" style="width: {{ badge.progress }}%;"></div>
+      </div>
+      <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px; text-align: right;">
+        {{ badge.current }} / {{ badge.target }} ({{ badge.progress }}%)
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Main Profile Sections Grid -->
+<div class="grid-2-1">
+  <!-- Left Column: Edit Personal Information -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i class="fa-solid fa-id-card"></i>
+        <span>Personal Information (You Tab)</span>
+      </h3>
+      <span class="badge badge-primary">{{ user.role | upper }}</span>
+    </div>
+
+    <form action="{{ url_for('profile') }}" method="POST">
+      <input type="hidden" name="action" value="update_profile">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="name" class="form-control" value="{{ user.name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address (Read-only)</label>
+          <input type="email" class="form-control" value="{{ user.email }}" disabled style="background: #f1f5f9; cursor: not-allowed;">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" name="phone" class="form-control" value="{{ user.phone or '' }}" placeholder="+91 9876543210">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Age</label>
+          <input type="number" name="age" class="form-control" value="{{ user.age or '' }}" placeholder="21" min="10" max="120">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Personal Bio / Goals</label>
+        <textarea name="bio" class="form-control" rows="3" placeholder="Tell us a little about your personal productivity goals...">{{ user.bio or '' }}</textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
+        <span style="font-size: 12px; color: var(--text-muted);">Member since: {{ user.created_at[:10] }}</span>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> Update Profile
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right Column: Account Security & Password Management -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fa-solid fa-lock" style="color: #dc2626;"></i>
+          <span>Security & Password</span>
+        </h3>
+      </div>
+
+      <form action="{{ url_for('profile') }}" method="POST">
+        <input type="hidden" name="action" value="change_password">
+
+        <div class="form-group">
+          <label class="form-label">Current Password</label>
+          <input type="password" name="old_password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" name="new_password" class="form-control" placeholder="Min. 6 characters" minlength="6" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" name="confirm_password" class="form-control" placeholder="Re-enter new password" required>
+        </div>
+
+        <button type="submit" class="btn btn-secondary" style="width: 100%;">
+          <i class="fa-solid fa-key"></i> Update Password
+        </button>
+      </form>
+    </div>
+
+    <!-- Quick Shortcuts Card -->
+    <div class="card" style="background: #f8fafc;">
+      <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;"><i class="fa-solid fa-file-export" style="margin-right: 6px; color: var(--primary);"></i>Reports & Logs</h4>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm" style="justify-content: flex-start;">
+          <i class="fa-solid fa-file-lines" style="color: var(--primary);"></i> View Printable Monthly Reports
+        </a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm" style="justify-content: flex-start;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out from this Device
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

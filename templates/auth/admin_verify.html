@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Administrator Security Verification — LifeBoard{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 50px auto;">
+  <div class="card" style="padding: 32px; border-top: 4px solid #dc2626; box-shadow: var(--shadow-xl);">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="width: 52px; height: 52px; border-radius: var(--radius-full); background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">Admin Authentication</h2>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+        This section is restricted to LifeBoard System Administrators. Please enter administrator credentials to proceed.
+      </p>
+    </div>
+
+    <form action="{{ url_for('admin_verify', next=next) }}" method="POST">
+      <div class="form-group">
+        <label class="form-label">Admin Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="admin@lifeboard.com" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Admin Password</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-danger" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 700; margin-top: 6px;">
+        <i class="fa-solid fa-lock-open"></i>
+        <span>Verify & Enter Admin Panel</span>
+      </button>
+
+      <div style="text-align: center; margin-top: 18px;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm">
+          <i class="fa-solid fa-arrow-left"></i> Cancel & Return to Dashboard
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
