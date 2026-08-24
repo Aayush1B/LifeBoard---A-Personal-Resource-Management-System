@@ -24,6 +24,18 @@
   <!-- Canvas Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
+  <!-- Immediate Theme Loader (Zero-Flicker) -->
+  <script>
+    (function() {
+      try {
+        const saved = localStorage.getItem('lifeboard_theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved ? saved : (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
+
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -173,8 +185,8 @@
           </div>
 
           <!-- Dark/Light Mode Switcher -->
-          <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-            <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+          <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+            <i class="fa-solid fa-moon theme-toggle-icon" id="themeToggleIcon"></i>
           </button>
 
           <!-- Voice Assistant Button -->
@@ -194,6 +206,33 @@
           </a>
           <a href="{{ url_for('logout') }}" class="btn-icon danger desktop-only-btn" title="Sign out">
             <i class="fa-solid fa-power-off"></i>
+          </a>
+        </div>
+      </header>
+      {% else %}
+      <!-- Public Top Header (Landing Page, Login, Register) with Dark Mode Toggle -->
+      <header class="top-header" style="justify-content: space-between; padding: 12px 24px; position: sticky; top: 0; z-index: 90;">
+        <a href="{{ url_for('index') }}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-main);">
+          <div class="brand-logo" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div>
+            <div class="brand-name" style="font-size: 17px; color: var(--text-main);">LifeBoard</div>
+            <div class="brand-sub" style="font-size: 10px;">PRMS Pro v2.0</div>
+          </div>
+        </a>
+
+        <div class="header-right" style="gap: 10px;">
+          <!-- Dark/Light Mode Switcher on Landing Page -->
+          <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode" aria-label="Toggle Dark/Light Mode">
+            <i class="fa-solid fa-moon theme-toggle-icon"></i>
+          </button>
+
+          <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm" style="padding: 7px 14px; font-size: 12.5px;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> <span class="desktop-only-text">Sign In</span>
+          </a>
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm" style="padding: 7px 14px; font-size: 12.5px;">
+            <i class="fa-solid fa-user-plus"></i> <span class="desktop-only-text">Register</span>
           </a>
         </div>
       </header>

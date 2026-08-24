@@ -479,6 +479,38 @@ class LifeBoardTestCase(unittest.TestCase):
         self.assertIn('attachment;', resp.headers['Content-Disposition'])
         self.assertIn('lifeboard_backup_', resp.headers['Content-Disposition'])
 
+    # -------------------------------------------------------------
+    # 19. Profile Email Update & Uniqueness Tests
+    # -------------------------------------------------------------
+    def test_26_profile_email_update_and_validation(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # Duplicate email check against admin
+        dup_success, dup_msg = models.update_user_profile(uid, 'Aayush S', '9999999999', 24, 'Bio', email='admin@lifeboard.com')
+        self.assertFalse(dup_success)
+        self.assertIn('already in use', dup_msg)
+
+        # Valid email update
+        success, msg = models.update_user_profile(uid, 'Aayush Sharma', '9876543210', 23, 'Developer', email='aayush.updated@lifeboard.com')
+        self.assertTrue(success)
+        updated_user = models.get_user_by_id(uid)
+        self.assertEqual(updated_user['email'], 'aayush.updated@lifeboard.com')
+
+        # Revert back
+        models.update_user_profile(uid, 'Aayush Sharma', '9876543210', 23, 'Developer', email='aayush@lifeboard.com')
+
+    # -------------------------------------------------------------
+    # 20. Upcoming Tasks 10-Row Restriction Tests
+    # -------------------------------------------------------------
+    def test_27_upcoming_tasks_limit_to_10(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # Query upcoming tasks with default limit 10
+        upcoming = models.get_upcoming_tasks(uid, days=3, limit=10)
+        self.assertLessEqual(len(upcoming), 10)
+
 if __name__ == '__main__':
     unittest.main()
 

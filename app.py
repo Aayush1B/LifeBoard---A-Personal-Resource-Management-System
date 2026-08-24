@@ -654,6 +654,7 @@ def profile():
 
         if action == 'update_profile':
             name = request.form.get('name', '').strip()
+            email = request.form.get('email', '').strip()
             phone = request.form.get('phone', '').strip()
             age_str = request.form.get('age', '').strip()
             bio = request.form.get('bio', '').strip()
@@ -663,9 +664,11 @@ def profile():
                 return redirect(url_for('profile'))
 
             age = int(age_str) if age_str and age_str.isdigit() else None
-            success, msg = models.update_user_profile(user_id, name, phone, age, bio)
+            success, msg = models.update_user_profile(user_id, name, phone, age, bio, email)
             if success:
                 session['name'] = name
+                if email:
+                    session['email'] = email
                 flash(msg, 'success')
             else:
                 flash(msg, 'danger')

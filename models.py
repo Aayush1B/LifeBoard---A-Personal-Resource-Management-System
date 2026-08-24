@@ -66,17 +66,35 @@ def register_user(name: str, email: str, password: str, phone: str = "", age: in
     finally:
         conn.close()
 
-def update_user_profile(user_id: int, name: str, phone: str, age: int, bio: str):
+def update_user_profile(user_id: int, name: str, phone: str, age: int, bio: str, email: str = None):
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-        UPDATE users
-        SET name = ?, phone = ?, age = ?, bio = ?
-        WHERE user_id = ?
-        """, (name.strip(), phone.strip(), age, bio.strip(), user_id))
+        if email:
+            email_clean = email.strip().lower()
+            if not email_clean:
+                return False, "Email address cannot be empty."
+            
+            # Check if email belongs to another user
+            cursor.execute("SELECT user_id FROM users WHERE LOWER(email) = LOWER(?) AND user_id != ?", (email_clean, user_id))
+            existing = cursor.fetchone()
+            if existing:
+                return False, "This email address is already in use by another account."
+
+            cursor.execute("""
+            UPDATE users
+            SET name = ?, email = ?, phone = ?, age = ?, bio = ?
+            WHERE user_id = ?
+            """, (name.strip(), email_clean, phone.strip(), age, bio.strip(), user_id))
+        else:
+            cursor.execute("""
+            UPDATE users
+            SET name = ?, phone = ?, age = ?, bio = ?
+            WHERE user_id = ?
+            """, (name.strip(), phone.strip(), age, bio.strip(), user_id))
+
         conn.commit()
-        log_audit(user_id, "", 'USER_PROFILE_UPDATE', 'Profile', f"Updated profile details for user ID {user_id}")
+        log_audit(user_id, email or "", 'USER_PROFILE_UPDATE', 'Profile', f"Updated profile details for user ID {user_id}")
         return True, "Profile updated successfully."
     except Exception as e:
         conn.rollback()
@@ -604,9 +622,9 @@ def get_task_summary(user_id: int):
         'completion_rate': completion_rate
     }
 
-def get_upcoming_tasks(user_id: int, days: int = 3):
+def get_upcoming_tasks(user_id: int, days: int = 3, limit: int = 10):
     """
-    Returns non-done tasks due in next X days, sorted by deadline ascending (FR-08).
+    Returns non-done tasks due in next X days, sorted by deadline ascending (FR-08), capped at limit rows.
     """
     now = datetime.now()
     limit_time = now + timedelta(days=days)
@@ -618,6 +636,8 @@ def get_upcoming_tasks(user_id: int, days: int = 3):
             upcoming.append(t)
 
     upcoming.sort(key=lambda x: x['deadline_dt'])
+    if limit is not None:
+        return upcoming[:limit]
     return upcoming
 
 
