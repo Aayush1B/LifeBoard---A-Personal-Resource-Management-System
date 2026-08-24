@@ -61,31 +61,31 @@
 
   <!-- SECTION 1: Health & Fitness Report -->
   <div class="card">
-    <div class="card-header" style="border-bottom: 2px solid #e0e7ff; padding-bottom: 12px;">
+    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
-        <i class="fa-solid fa-heart-pulse" style="color: #4338ca;"></i>
+        <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i>
         <span>1. Health & Physical Activity Analysis</span>
       </h3>
       <span class="badge badge-primary">{{ report.health.workouts_count }} Workouts</span>
     </div>
 
     <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Calories Burned</div>
-        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.total_calories }} kcal</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.total_calories }} kcal</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Active Time</div>
-        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.total_duration_mins }} mins</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.total_duration_mins }} mins</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Primary Activity</div>
-        <div style="font-size: 20px; font-weight: 800; color: #4338ca;">{{ report.health.top_activity }}</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.top_activity }}</div>
       </div>
     </div>
 
     <!-- Habit Streaks in Month -->
-    <h4 style="font-size: 14px; margin-bottom: 10px;">Habit Adherence in {{ report.month_name }}</h4>
+    <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-main);">Habit Adherence in {{ report.month_name }}</h4>
     {% if report.health.habits %}
     <table class="table-custom" style="margin-bottom: 14px;">
       <thead>
@@ -112,39 +112,39 @@
 
   <!-- SECTION 2: Task & Schedule Report -->
   <div class="card">
-    <div class="card-header" style="border-bottom: 2px solid #ffedd5; padding-bottom: 12px;">
+    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
-        <i class="fa-solid fa-list-check" style="color: #c2410c;"></i>
+        <i class="fa-solid fa-list-check" style="color: var(--warning);"></i>
         <span>2. Tasks & Deadline Schedule Breakdown</span>
       </h3>
       <span class="badge badge-warning">{{ report.tasks.completion_rate }}% Completion Rate</span>
     </div>
 
     <div class="grid-4" style="margin-top: 14px; margin-bottom: 18px;">
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Tasks</div>
-        <div style="font-size: 20px; font-weight: 800;">{{ report.tasks.total }}</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--text-main);">{{ report.tasks.total }}</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: #15803d; text-transform: uppercase;">Completed</div>
-        <div style="font-size: 20px; font-weight: 800; color: #15803d;">{{ report.tasks.done }}</div>
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase;">Completed</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--success);">{{ report.tasks.done }}</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Pending / Active</div>
-        <div style="font-size: 20px; font-weight: 800; color: #c2410c;">{{ report.tasks.pending + report.tasks.in_progress }}</div>
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--warning); text-transform: uppercase;">Pending / Active</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--warning);">{{ report.tasks.pending + report.tasks.in_progress }}</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">High Priority</div>
-        <div style="font-size: 20px; font-weight: 800; color: #b91c1c;">{{ report.tasks.high_priority }}</div>
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--danger); text-transform: uppercase;">High Priority</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--danger);">{{ report.tasks.high_priority }}</div>
       </div>
     </div>
   </div>
 
   <!-- SECTION 3: Financial Summary & Budget Report -->
   <div class="card">
-    <div class="card-header" style="border-bottom: 2px solid #fef08a; padding-bottom: 12px;">
+    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
-        <i class="fa-solid fa-wallet" style="color: #854d0e;"></i>
+        <i class="fa-solid fa-wallet" style="color: #f59e0b;"></i>
         <span>3. Personal Financial Report & Budget Adherence</span>
       </h3>
       {% if report.finance.summary.is_over_budget %}
@@ -155,17 +155,17 @@
     </div>
 
     <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Monthly Budget</div>
-        <div style="font-size: 20px; font-weight: 800;">₹{{ "{:,.2f}".format(report.finance.summary.budget) }}</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--text-main);">₹{{ "{:,.2f}".format(report.finance.summary.budget) }}</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Total Expenses</div>
-        <div style="font-size: 20px; font-weight: 800; color: #b91c1c;">₹{{ "{:,.2f}".format(report.finance.summary.spent) }}</div>
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--danger); text-transform: uppercase;">Total Expenses</div>
+        <div style="font-size: 20px; font-weight: 800; color: var(--danger);">₹{{ "{:,.2f}".format(report.finance.summary.spent) }}</div>
       </div>
-      <div style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: #15803d; text-transform: uppercase;">Net Savings / Deficit</div>
-        <div style="font-size: 20px; font-weight: 800; color: {% if report.finance.summary.is_over_budget %}#dc2626{% else %}#15803d{% endif %};">
+      <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase;">Net Savings / Deficit</div>
+        <div style="font-size: 20px; font-weight: 800; color: {% if report.finance.summary.is_over_budget %}var(--danger){% else %}var(--success){% endif %};">
           ₹{{ "{:,.2f}".format(report.finance.summary.savings) }}
         </div>
       </div>

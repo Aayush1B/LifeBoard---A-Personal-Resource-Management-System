@@ -207,7 +207,7 @@
               <strong>${e.category}</strong>
               ${e.description ? `<div style="font-size: 11px; color: var(--text-muted);">${e.description}</div>` : ''}
             </div>
-            <strong style="color: #0f172a;">₹${parseFloat(e.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+            <strong style="color: var(--text-main);">₹${parseFloat(e.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
           </div>
         `;
       });

@@ -1490,4 +1490,66 @@ a {
   font-size: 17px;
 }
 
+/* -------------------------------------------------------------
+   Comprehensive Dark Theme Overrides & Refinements
+   ------------------------------------------------------------- */
+[data-theme="dark"] .btn-secondary {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: #334155;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn-icon:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .table-custom th {
+  background-color: #0c1322;
+  color: var(--text-muted);
+  border-bottom-color: var(--border-color);
+}
+[data-theme="dark"] .table-custom td {
+  border-bottom-color: var(--border-color);
+  color: var(--text-main);
+}
+[data-theme="dark"] .table-custom tr:hover td {
+  background-color: #131d31;
+}
+
+[data-theme="dark"] .form-control {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+[data-theme="dark"] .form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+[data-theme="dark"] .modal-content {
+  background-color: #0f172a;
+  border-color: #1e293b;
+  color: var(--text-main);
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] select.form-control option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .badge-secondary {
+  background-color: #1e293b;
+  color: #94a3b8;
+}
+
+
 
