@@ -455,6 +455,7 @@ def add_task():
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
     priority = request.form.get('priority', 'medium').lower()
+    recurring = request.form.get('recurring', 'none').lower()
     deadline_date = request.form.get('deadline_date', '').strip()
     deadline_time = request.form.get('deadline_time', '23:59').strip()
 
@@ -464,7 +465,7 @@ def add_task():
 
     deadline = f"{deadline_date} {deadline_time}:00"
 
-    success, msg = models.create_task(user_id, title, description, priority, deadline)
+    success, msg = models.create_task(user_id, title, description, priority, deadline, recurring)
     if success:
         flash(msg, 'success')
     else:
@@ -482,11 +483,12 @@ def edit_task(task_id):
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
     priority = request.form.get('priority', 'medium').lower()
+    recurring = request.form.get('recurring', 'none').lower()
     deadline_date = request.form.get('deadline_date', '').strip()
     deadline_time = request.form.get('deadline_time', '23:59').strip()
 
     deadline = f"{deadline_date} {deadline_time}:00"
-    success, msg = models.update_task(user_id, task_id, title, description, priority, deadline)
+    success, msg = models.update_task(user_id, task_id, title, description, priority, deadline, recurring)
     if success:
         flash(msg, 'success')
     else:
@@ -586,6 +588,35 @@ def add_expense():
         return redirect(request.referrer or url_for('finance'))
 
     success, msg = models.log_expense(user_id, amount, category, description, expense_date)
+    if success:
+        flash(msg, 'success')
+    else:
+        flash(msg, 'danger')
+
+    return redirect(request.referrer or url_for('finance'))
+
+@app.route('/finance/expense/edit/<int:expense_id>', methods=['POST'])
+@login_required
+def edit_expense(expense_id):
+    """
+    Edits an existing expense record (FR-29, FR-30).
+    """
+    user_id = session['user_id']
+    amount_str = request.form.get('amount', '0')
+    category = request.form.get('category', '').strip()
+    description = request.form.get('description', '').strip()
+    expense_date = request.form.get('expense_date', '').strip()
+
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            flash('Expense amount must be greater than zero.', 'danger')
+            return redirect(request.referrer or url_for('finance'))
+    except ValueError:
+        flash('Please enter a valid numeric amount.', 'danger')
+        return redirect(request.referrer or url_for('finance'))
+
+    success, msg = models.update_expense(user_id, expense_id, amount, category, description, expense_date)
     if success:
         flash(msg, 'success')
     else:

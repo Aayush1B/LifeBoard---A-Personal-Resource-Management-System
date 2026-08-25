@@ -91,7 +91,12 @@
     {% for task in pending_tasks %}
     <div class="kanban-card">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-        <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+          {% if task.recurring and task.recurring != 'none' %}
+            <span class="badge badge-secondary" style="font-size: 10.5px;" title="Repeats {{ task.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ task.recurring|title }}</span>
+          {% endif %}
+        </div>
         {% if task.is_overdue %}
           <span class="badge badge-overdue">OVERDUE</span>
         {% elif task.is_due_soon %}
@@ -128,7 +133,12 @@
     {% for task in in_progress_tasks %}
     <div class="kanban-card" style="border-left: 3px solid #ea580c;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-        <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
+          {% if task.recurring and task.recurring != 'none' %}
+            <span class="badge badge-secondary" style="font-size: 10.5px;" title="Repeats {{ task.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ task.recurring|title }}</span>
+          {% endif %}
+        </div>
         {% if task.is_overdue %}
           <span class="badge badge-overdue">OVERDUE</span>
         {% elif task.is_due_soon %}
@@ -160,7 +170,12 @@
     </div>
     {% for task in done_tasks %}
     <div class="kanban-card" style="opacity: 0.75;">
-      <h4 style="font-size: 14px; text-decoration: line-through; margin-bottom: 6px;">{{ task.title }}</h4>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+        <h4 style="font-size: 14px; text-decoration: line-through; margin-bottom: 6px;">{{ task.title }}</h4>
+        {% if task.recurring and task.recurring != 'none' %}
+          <span class="badge badge-secondary" style="font-size: 10px;" title="Repeats {{ task.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ task.recurring|title }}</span>
+        {% endif %}
+      </div>
       <div style="font-size: 11px; color: var(--text-muted);">
         Completed on {{ task.completed_at or 'Recently' }}
       </div>
@@ -214,7 +229,12 @@
           </td>
 
           <td>
-            <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
+              {% if t.recurring and t.recurring != 'none' %}
+                <span class="badge badge-secondary" style="font-size: 10.5px;" title="Repeats {{ t.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ t.recurring|title }}</span>
+              {% endif %}
+            </div>
           </td>
 
           <td>
@@ -238,7 +258,7 @@
             </form>
             {% endif %}
 
-            <button type="button" class="btn-icon" title="Edit Task" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}')">
+            <button type="button" class="btn-icon" title="Edit Task" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}', '{{ t.recurring }}')">
               <i class="fa-regular fa-pen-to-square"></i>
             </button>
 
@@ -259,8 +279,11 @@
     {% for t in tasks %}
     <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}">
       <div class="mobile-card-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
+          {% if t.recurring and t.recurring != 'none' %}
+            <span class="badge badge-secondary" style="font-size: 10.5px;" title="Repeats {{ t.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ t.recurring|title }}</span>
+          {% endif %}
           {% if t.is_overdue %}
             <span class="badge badge-overdue">OVERDUE</span>
           {% elif t.is_due_soon %}
@@ -295,7 +318,7 @@
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}')">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditTaskModal({{ t.task_id }}, '{{ t.title | escape }}', '{{ (t.description or '') | escape }}', '{{ t.priority }}', '{{ t.deadline }}', '{{ t.recurring }}')">
           <i class="fa-regular fa-pen-to-square"></i> Edit
         </button>
         <form action="{{ url_for('delete_task_route', task_id=t.task_id) }}" method="POST" style="display: inline;" data-confirm="Delete this task?">
@@ -342,6 +365,15 @@
             <option value="high">High Priority</option>
             <option value="medium">Medium Priority</option>
             <option value="low">Low Priority</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><i class="fa-solid fa-repeat" style="color: var(--primary); margin-right: 6px;"></i>Repeat / Recurrence</label>
+          <select name="recurring" id="editTaskRecurring" class="form-control">
+            <option value="none">Does not repeat (One-off)</option>
+            <option value="daily">Repeats Daily 🔄</option>
+            <option value="weekly">Repeats Weekly 📅</option>
+            <option value="monthly">Repeats Monthly 🗓️</option>
           </select>
         </div>
         <div class="form-row">

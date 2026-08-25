@@ -48,15 +48,20 @@ function updateBmiPreview() {
 }
 
 // Edit Task Modal Populator
-function openEditTaskModal(taskId, title, description, priority, deadline) {
+function openEditTaskModal(taskId, title, description, priority, deadline, recurring) {
   const modal = document.getElementById('editTaskModal');
   const form = document.getElementById('editTaskForm');
   if (!modal || !form) return;
 
   form.action = `/tasks/edit/${taskId}`;
   document.getElementById('editTaskTitle').value = title;
-  document.getElementById('editTaskDescription').value = description;
-  document.getElementById('editTaskPriority').value = priority;
+  document.getElementById('editTaskDescription').value = description || '';
+  document.getElementById('editTaskPriority').value = priority || 'medium';
+  
+  const recSelect = document.getElementById('editTaskRecurring');
+  if (recSelect) {
+    recSelect.value = recurring || 'none';
+  }
 
   // Split deadline if format is "YYYY-MM-DD HH:MM:SS"
   if (deadline) {
@@ -69,3 +74,19 @@ function openEditTaskModal(taskId, title, description, priority, deadline) {
 
   openModal('editTaskModal');
 }
+
+// Edit Expense Modal Populator
+function openEditExpenseModal(expenseId, amount, category, description, expenseDate) {
+  const modal = document.getElementById('editExpenseModal');
+  const form = document.getElementById('editExpenseForm');
+  if (!modal || !form) return;
+
+  form.action = `/finance/expense/edit/${expenseId}`;
+  document.getElementById('editExpenseAmount').value = amount;
+  document.getElementById('editExpenseCategory').value = category;
+  document.getElementById('editExpenseDescription').value = description || '';
+  document.getElementById('editExpenseDate').value = expenseDate || '';
+
+  openModal('editExpenseModal');
+}
+

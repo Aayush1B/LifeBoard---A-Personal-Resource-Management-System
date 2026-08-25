@@ -48,13 +48,15 @@
     <!-- Sidebar Navigation (Desktop + Mobile Drawer) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="brand-logo">
-          <i class="fa-solid fa-layer-group"></i>
-        </div>
-        <div style="flex: 1;">
-          <div class="brand-name">LifeBoard</div>
-          <div class="brand-sub">PRMS Pro v2.0</div>
-        </div>
+        <a href="{{ url_for('dashboard') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0;" title="LifeBoard Dashboard">
+          <div class="brand-logo">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div class="brand-name">LifeBoard</div>
+            <div class="brand-sub">PRMS Pro v2.0</div>
+          </div>
+        </a>
         <button class="btn-icon mobile-drawer-close" id="mobileDrawerClose" style="color: #94a3b8; display: none;">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -562,6 +564,15 @@
               <option value="high">High Priority (Red)</option>
               <option value="medium" selected>Medium Priority (Orange)</option>
               <option value="low">Low Priority (Green)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label"><i class="fa-solid fa-repeat" style="color: var(--primary); margin-right: 6px;"></i>Repeat / Recurrence</label>
+            <select name="recurring" class="form-control">
+              <option value="none" selected>Does not repeat (One-off)</option>
+              <option value="daily">Repeats Daily 🔄</option>
+              <option value="weekly">Repeats Weekly 📅</option>
+              <option value="monthly">Repeats Monthly 🗓️</option>
             </select>
           </div>
           <div class="form-row">

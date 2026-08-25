@@ -511,6 +511,76 @@ class LifeBoardTestCase(unittest.TestCase):
         upcoming = models.get_upcoming_tasks(uid, days=3, limit=10)
         self.assertLessEqual(len(upcoming), 10)
 
+    # -------------------------------------------------------------
+    # 21. Recurring Tasks Creation & Auto-Rescheduling Tests
+    # -------------------------------------------------------------
+    def test_28_recurring_task_creation_and_reschedule(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Create a daily recurring task
+        dl = (datetime.now() + timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
+        success, msg = models.create_task(uid, "Daily Water Refill", "Drink water", "medium", dl, recurring="daily")
+        self.assertTrue(success)
+
+        # 2. Verify task has recurring='daily'
+        tasks = [t for t in models.get_user_tasks(uid, 'all') if t['title'] == "Daily Water Refill"]
+        self.assertTrue(len(tasks) > 0)
+        task = tasks[0]
+        self.assertEqual(task['recurring'], 'daily')
+
+        # 3. Marking task as 'done' automatically advances deadline by +1 day and resets status to 'pending'
+        old_dl = task['deadline_dt']
+        status_success, status_msg = models.update_task_status(uid, task['task_id'], 'done')
+        self.assertTrue(status_success)
+        self.assertIn("Daily Repeat", status_msg)
+
+        # 4. Verify the task rescheduled
+        updated_tasks = [t for t in models.get_user_tasks(uid, 'all') if t['task_id'] == task['task_id']]
+        updated_task = updated_tasks[0]
+        self.assertEqual(updated_task['status'], 'pending')
+        self.assertGreater(updated_task['deadline_dt'], old_dl)
+
+        # Cleanup
+        models.delete_task(uid, task['task_id'])
+
+    # -------------------------------------------------------------
+    # 22. Personal Finance Expense Update & Edit Route Tests
+    # -------------------------------------------------------------
+    def test_29_expense_update_and_edit_flow(self):
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = 2
+            sess['name'] = 'Aayush Sharma'
+            sess['email'] = 'aayush@lifeboard.com'
+            sess['role'] = 'user'
+
+        # 1. Log a test expense
+        log_succ, log_msg = models.log_expense(2, 250.0, "Food", "Initial Snack", date.today().strftime('%Y-%m-%d'))
+        self.assertTrue(log_succ)
+
+        expenses = models.get_user_expenses(2, limit=10)
+        test_exp = [e for e in expenses if e['description'] == "Initial Snack"][0]
+        exp_id = test_exp['expense_id']
+
+        # 2. Edit the expense via POST route
+        post_resp = self.client.post(f'/finance/expense/edit/{exp_id}', data={
+            'amount': '350.50',
+            'category': 'Transport',
+            'description': 'Updated Metro Card',
+            'expense_date': date.today().strftime('%Y-%m-%d')
+        }, follow_redirects=True)
+        self.assertEqual(post_resp.status_code, 200)
+
+        # 3. Verify updated details in database
+        updated_expenses = models.get_user_expenses(2, limit=10)
+        updated_exp = [e for e in updated_expenses if e['expense_id'] == exp_id][0]
+        self.assertEqual(updated_exp['amount'], 350.50)
+        self.assertEqual(updated_exp['category'], 'Transport')
+        self.assertEqual(updated_exp['description'], 'Updated Metro Card')
+
+        # Cleanup
+        models.delete_expense(2, exp_id)
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -116,12 +116,19 @@ def init_db():
         description TEXT,
         priority VARCHAR(10) NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
         status VARCHAR(15) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done')),
+        recurring VARCHAR(20) DEFAULT 'none',
         deadline DATETIME NOT NULL,
         completed_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
     );
     """)
+
+    # Column Migration for Tasks Recurrence (Seamless backward compatibility)
+    try:
+        cursor.execute("ALTER TABLE tasks ADD COLUMN recurring VARCHAR(20) DEFAULT 'none';")
+    except sqlite3.OperationalError:
+        pass # Column already exists
 
     # 7. Expense Log Table (FR-29, FR-30)
     cursor.execute("""

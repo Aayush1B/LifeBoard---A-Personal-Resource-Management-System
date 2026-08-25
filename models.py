@@ -470,22 +470,25 @@ def get_user_bmi_history(user_id: int, limit: int = 10):
 # 5. TASKS & SCHEDULE MODULE LOGIC
 # ==========================================
 
-def create_task(user_id: int, title: str, description: str, priority: str, deadline: str):
+def create_task(user_id: int, title: str, description: str, priority: str, deadline: str, recurring: str = 'none'):
     """
-    Creates a new task with priority and deadline (FR-21).
+    Creates a new task with priority, deadline, and recurrence option (FR-21).
     """
     if not title.strip() or not deadline.strip() or priority not in ('high', 'medium', 'low'):
         return False, "Title, priority, and deadline are required."
+
+    if recurring not in ('none', 'daily', 'weekly', 'monthly'):
+        recurring = 'none'
 
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-        INSERT INTO tasks (user_id, title, description, priority, status, deadline)
-        VALUES (?, ?, ?, ?, 'pending', ?)
-        """, (user_id, title.strip(), description.strip() if description else "", priority, deadline))
+        INSERT INTO tasks (user_id, title, description, priority, status, recurring, deadline)
+        VALUES (?, ?, ?, ?, 'pending', ?, ?)
+        """, (user_id, title.strip(), description.strip() if description else "", priority, recurring, deadline))
         conn.commit()
-        log_audit(user_id, "", 'TASK_CREATED', 'Tasks', f"Created task '{title.strip()}' [Priority: {priority}]")
+        log_audit(user_id, "", 'TASK_CREATED', 'Tasks', f"Created task '{title.strip()}' [Priority: {priority}, Recurrence: {recurring}]")
         return True, "Task created successfully."
     except Exception as e:
         conn.rollback()
@@ -493,21 +496,24 @@ def create_task(user_id: int, title: str, description: str, priority: str, deadl
     finally:
         conn.close()
 
-def update_task(user_id: int, task_id: int, title: str, description: str, priority: str, deadline: str):
+def update_task(user_id: int, task_id: int, title: str, description: str, priority: str, deadline: str, recurring: str = 'none'):
     """
     Updates task fields (FR-28).
     """
     if not title.strip() or not deadline.strip() or priority not in ('high', 'medium', 'low'):
         return False, "Title, priority, and deadline are required."
 
+    if recurring not in ('none', 'daily', 'weekly', 'monthly'):
+        recurring = 'none'
+
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute("""
         UPDATE tasks
-        SET title = ?, description = ?, priority = ?, deadline = ?
+        SET title = ?, description = ?, priority = ?, recurring = ?, deadline = ?
         WHERE task_id = ? AND user_id = ?
-        """, (title.strip(), description.strip() if description else "", priority, deadline, task_id, user_id))
+        """, (title.strip(), description.strip() if description else "", priority, recurring, deadline, task_id, user_id))
         conn.commit()
         log_audit(user_id, "", 'TASK_UPDATED', 'Tasks', f"Updated task #{task_id}")
         return True, "Task updated successfully."
@@ -520,22 +526,70 @@ def update_task(user_id: int, task_id: int, title: str, description: str, priori
 def update_task_status(user_id: int, task_id: int, new_status: str):
     """
     Inline update of task status (FR-27).
+    When a recurring task is completed, automatically advances deadline and schedules next occurrence.
     """
     if new_status not in ('pending', 'in_progress', 'done'):
         return False, "Invalid task status."
 
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S') if new_status == 'done' else None
+    now = datetime.now()
+    now_str = now.strftime('%Y-%m-%d %H:%M:%S') if new_status == 'done' else None
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-        UPDATE tasks
-        SET status = ?, completed_at = ?
-        WHERE task_id = ? AND user_id = ?
-        """, (new_status, now_str, task_id, user_id))
-        conn.commit()
-        log_audit(user_id, "", 'TASK_STATUS_UPDATED', 'Tasks', f"Task #{task_id} status updated to {new_status}")
-        return True, f"Task marked as {new_status.replace('_', ' ').title()}."
+        cursor.execute("SELECT * FROM tasks WHERE task_id = ? AND user_id = ?", (task_id, user_id))
+        task_row = cursor.fetchone()
+        if not task_row:
+            conn.close()
+            return False, "Task not found."
+
+        rec = dict(task_row).get('recurring', 'none') or 'none'
+
+        if new_status == 'done' and rec != 'none':
+            # Parse existing deadline
+            dl_str = task_row['deadline']
+            try:
+                curr_dl = datetime.strptime(dl_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    curr_dl = datetime.strptime(dl_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    curr_dl = datetime.strptime(dl_str[:10], '%Y-%m-%d')
+
+            # Calculate next deadline based on recurrence interval
+            if rec == 'daily':
+                next_dl = curr_dl + timedelta(days=1)
+                if next_dl < now: next_dl = now + timedelta(days=1)
+                rec_label = "tomorrow (Daily Repeat)"
+            elif rec == 'weekly':
+                next_dl = curr_dl + timedelta(days=7)
+                if next_dl < now: next_dl = now + timedelta(days=7)
+                rec_label = "next week (Weekly Repeat)"
+            elif rec == 'monthly':
+                next_dl = curr_dl + timedelta(days=30)
+                if next_dl < now: next_dl = now + timedelta(days=30)
+                rec_label = "next month (Monthly Repeat)"
+            else:
+                next_dl = curr_dl + timedelta(days=1)
+                rec_label = "next cycle"
+
+            next_dl_str = next_dl.strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("""
+            UPDATE tasks
+            SET status = 'pending', completed_at = ?, deadline = ?
+            WHERE task_id = ? AND user_id = ?
+            """, (now_str, next_dl_str, task_id, user_id))
+            conn.commit()
+            log_audit(user_id, "", 'TASK_RECURRED', 'Tasks', f"Task #{task_id} marked done and rescheduled for {rec_label}")
+            return True, f"Task completed! Rescheduled for {rec_label}."
+        else:
+            cursor.execute("""
+            UPDATE tasks
+            SET status = ?, completed_at = ?
+            WHERE task_id = ? AND user_id = ?
+            """, (new_status, now_str, task_id, user_id))
+            conn.commit()
+            log_audit(user_id, "", 'TASK_STATUS_UPDATED', 'Tasks', f"Task #{task_id} status updated to {new_status}")
+            return True, f"Task marked as {new_status.replace('_', ' ').title()}."
     except Exception as e:
         conn.rollback()
         return False, str(e)
@@ -576,6 +630,8 @@ def get_user_tasks(user_id: int, filter_status: str = 'all'):
     tasks_list = []
     for t in raw_tasks:
         td = dict(t)
+        if 'recurring' not in td or td['recurring'] is None:
+            td['recurring'] = 'none'
         # Parse deadline
         try:
             d_time = datetime.strptime(td['deadline'], '%Y-%m-%d %H:%M:%S')
@@ -668,6 +724,34 @@ def log_expense(user_id: int, amount: float, category: str, description: str = "
         conn.commit()
         log_audit(user_id, "", 'EXPENSE_LOGGED', 'Finance', f"Logged ₹{amount:.2f} for {category}")
         return True, "Expense recorded successfully."
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
+
+def update_expense(user_id: int, expense_id: int, amount: float, category: str, description: str = "", expense_date: str = None):
+    """
+    Updates an existing expense record (FR-29, FR-30).
+    """
+    if amount <= 0:
+        return False, "Expense amount must be greater than zero."
+    if category not in EXPENSE_CATEGORIES:
+        return False, f"Category must be one of: {', '.join(EXPENSE_CATEGORIES)}"
+    if not expense_date:
+        expense_date = date.today().strftime('%Y-%m-%d')
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+        UPDATE expense_log
+        SET amount = ?, category = ?, description = ?, expense_date = ?
+        WHERE expense_id = ? AND user_id = ?
+        """, (round(amount, 2), category, description.strip(), expense_date, expense_id, user_id))
+        conn.commit()
+        log_audit(user_id, "", 'EXPENSE_UPDATED', 'Finance', f"Updated expense #{expense_id} (₹{amount:.2f} for {category})")
+        return True, "Expense updated successfully."
     except Exception as e:
         conn.rollback()
         return False, str(e)
