@@ -1888,6 +1888,7 @@ def get_user_notifications(user_id: int):
     """, (user_id, now_str))
     for t in cursor.fetchall():
         notifications.append({
+            'id': f"task_overdue_{t['task_id']}",
             'type': 'danger',
             'icon': 'fa-triangle-exclamation',
             'title': 'Overdue Task',
@@ -1903,6 +1904,7 @@ def get_user_notifications(user_id: int):
     """, (user_id, f"{today_str}%"))
     for t in cursor.fetchall():
         notifications.append({
+            'id': f"task_due_{t['task_id']}",
             'type': 'warning',
             'icon': 'fa-clock',
             'title': 'Due Today',
@@ -1916,6 +1918,7 @@ def get_user_notifications(user_id: int):
     fin = get_financial_summary(user_id)
     if fin['is_over_budget']:
         notifications.append({
+            'id': f"budget_exceeded_{today_str[:7]}",
             'type': 'danger',
             'icon': 'fa-wallet',
             'title': 'Budget Exceeded',
@@ -1924,6 +1927,7 @@ def get_user_notifications(user_id: int):
         })
     elif fin['is_warning']:
         notifications.append({
+            'id': f"budget_warning_{today_str[:7]}",
             'type': 'warning',
             'icon': 'fa-wallet',
             'title': 'Budget Caution (80%)',

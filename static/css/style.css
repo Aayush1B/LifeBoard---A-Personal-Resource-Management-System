@@ -846,6 +846,7 @@ a {
   justify-content: space-between;
   gap: 10px;
   box-shadow: var(--shadow-xs);
+  transition: all 0.35s ease;
 }
 
 .alert-success { background: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
@@ -856,10 +857,17 @@ a {
 .alert-close {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   color: inherit;
   opacity: 0.6;
+  padding: 0 4px;
+  line-height: 1;
+  transition: opacity 0.2s ease;
+}
+
+.alert-close:hover {
+  opacity: 1;
 }
 
 /* -------------------------------------------------------------
@@ -1350,13 +1358,13 @@ a {
 }
 
 .notification-item {
-  padding: 12px 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   color: var(--text-main);
-  transition: var(--transition);
+  transition: all 0.25s ease;
 }
 .notification-item:hover {
   background: var(--bg-app);
@@ -1364,6 +1372,29 @@ a {
 .notification-item.danger i { color: var(--danger); }
 .notification-item.warning i { color: var(--warning); }
 .notification-item.success i { color: var(--success); }
+
+.notif-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  opacity: 0.45;
+  transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
+}
+.notif-close-btn:hover {
+  opacity: 1;
+  color: var(--danger);
+  background: var(--danger-light);
+}
+
+.btn-clear-all:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
 
 /* -------------------------------------------------------------
    AI Forecast Card

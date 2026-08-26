@@ -155,33 +155,38 @@
             <button class="theme-toggle-btn" id="notificationBtn" onclick="toggleNotificationDropdown()" title="Notifications">
               <i class="fa-regular fa-bell"></i>
               {% if unread_notifications_count > 0 %}
-                <span class="notification-badge">{{ unread_notifications_count }}</span>
+                <span class="notification-badge" id="notifBellBadge">{{ unread_notifications_count }}</span>
               {% endif %}
             </button>
 
             <!-- Notification Dropdown Menu -->
             <div class="notification-dropdown" id="notificationDropdown">
-              <div class="notification-header">
-                <span style="font-weight: 800; font-size: 13px;">Notifications</span>
-                <span class="badge badge-primary">{{ unread_notifications_count }} New</span>
+              <div class="notification-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-weight: 800; font-size: 13px;">Notifications</span>
+                  <span class="badge badge-primary" id="notifHeaderCount">{{ unread_notifications_count }} New</span>
+                </div>
+                <button type="button" class="btn-clear-all" onclick="clearAllNotifs(event)" title="Clear all alerts" style="background: none; border: none; font-size: 11.5px; color: var(--primary); cursor: pointer; font-weight: 700; padding: 2px 6px;">Clear all</button>
               </div>
-              <div class="notification-list">
+              <div class="notification-list" id="notifListContainer">
                 {% if notifications %}
                   {% for n in notifications %}
-                  <a href="{{ n.link }}" class="notification-item {{ n.type }}">
-                    <i class="fa-solid {{ n.icon }}" style="font-size: 15px; margin-top: 2px;"></i>
-                    <div>
-                      <strong style="font-size: 12.5px; display: block;">{{ n.title }}</strong>
-                      <span style="font-size: 11.5px; color: var(--text-muted);">{{ n.text }}</span>
-                    </div>
-                  </a>
-                  {% endfor %}
-                {% else %}
-                  <div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 12.5px;">
-                    <i class="fa-regular fa-bell-slash" style="font-size: 24px; margin-bottom: 6px; color: var(--primary);"></i>
-                    <p>All caught up! No active alerts.</p>
+                  <div class="notification-item {{ n.type }}" id="notif-{{ n.id }}" data-notif-id="{{ n.id }}">
+                    <a href="{{ n.link }}" onclick="handleNotifClick(event, '{{ n.id }}', '{{ n.link }}')" style="display: flex; gap: 10px; text-decoration: none; color: inherit; flex: 1; align-items: flex-start;">
+                      <i class="fa-solid {{ n.icon }}" style="font-size: 15px; margin-top: 3px;"></i>
+                      <div style="flex: 1;">
+                        <strong style="font-size: 12.5px; display: block;">{{ n.title }}</strong>
+                        <span style="font-size: 11.5px; color: var(--text-muted);">{{ n.text }}</span>
+                      </div>
+                    </a>
+                    <button type="button" class="notif-close-btn" onclick="dismissSingleNotif(event, '{{ n.id }}')" title="Dismiss">&times;</button>
                   </div>
+                  {% endfor %}
                 {% endif %}
+                <div id="notifEmptyState" style="{% if notifications %}display: none;{% endif %} text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 12.5px;">
+                  <i class="fa-regular fa-bell-slash" style="font-size: 24px; margin-bottom: 6px; color: var(--primary);"></i>
+                  <p>All caught up! No active alerts.</p>
+                </div>
               </div>
             </div>
           </div>

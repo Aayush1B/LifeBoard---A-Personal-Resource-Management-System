@@ -4,13 +4,13 @@
 {% block page_title %}Personal Finance Management{% endblock %}
 
 {% block content %}
-<!-- Budget Status Banner (FR-33, FR-34, FR-38) -->
+<!-- Budget Status Banner -->
 {% if summary.is_over_budget %}
 <div class="alert alert-danger" style="margin-bottom: 24px;">
   <div style="display: flex; align-items: center; gap: 12px;">
     <i class="fa-solid fa-circle-exclamation" style="font-size: 20px;"></i>
     <div>
-      <div style="font-weight: 700; font-size: 15px;">Budget Breach Alert (FR-34)</div>
+      <div style="font-weight: 700; font-size: 15px;">Budget Breach Alert</div>
       <div>You have exceeded your monthly limit! <strong style="color: #ffffff; background: #991b1b; padding: 2px 8px; border-radius: 4px;">Over Budget by ₹{{ "{:,.2f}".format(summary.over_budget_amount) }}</strong></div>
     </div>
   </div>
@@ -20,14 +20,14 @@
   <div style="display: flex; align-items: center; gap: 12px;">
     <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
     <div>
-      <div style="font-weight: 700; font-size: 15px;">Spending Warning (FR-33)</div>
+      <div style="font-weight: 700; font-size: 15px;">Spending Warning</div>
       <div>Caution: You have utilized <strong>{{ summary.actual_percent }}%</strong> of your monthly budget limit!</div>
     </div>
   </div>
 </div>
 {% endif %}
 
-<!-- Finance Summary Cards Row (FR-31, FR-32, FR-37, FR-38) -->
+<!-- Finance Summary Cards Row -->
 <div class="grid-4">
   <div class="card">
     <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Monthly Budget</div>
@@ -44,7 +44,7 @@
   </div>
 
   <div class="card">
-    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Monthly Savings (FR-37)</div>
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">Monthly Savings</div>
     {% if summary.is_over_budget %}
       <div style="font-size: 24px; font-weight: 800; color: #dc2626;">-₹{{ "{:,.2f}".format(summary.over_budget_amount) }}</div>
       <div style="font-size: 11px; color: #dc2626; font-weight: 600; margin-top: 8px;">Over Budget (Deficit)</div>

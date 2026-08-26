@@ -39,28 +39,37 @@ document.addEventListener('DOMContentLoaded', () => {
     backdrop.addEventListener('click', closeSidebar);
   }
 
-  // Flash Message Auto Dismiss & Close Buttons
-  const alertCloseBtns = document.querySelectorAll('.alert-close');
+  // Flash Message Auto Dismiss & Close Buttons (Scoped to Flash Container)
+  function dismissAlert(alert) {
+    if (!alert || !alert.parentElement) return;
+    alert.style.transition = 'all 0.35s ease';
+    alert.style.opacity = '0';
+    alert.style.transform = 'translateY(-8px)';
+    setTimeout(() => {
+      if (alert.parentElement) alert.remove();
+    }, 350);
+  }
+
+  const alertCloseBtns = document.querySelectorAll('.flash-container .alert-close');
   alertCloseBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const alert = btn.closest('.alert');
-      if (alert) {
-        alert.style.opacity = '0';
-        setTimeout(() => alert.remove(), 250);
-      }
+      if (alert) dismissAlert(alert);
     });
   });
 
-  // Auto-dismiss success flash alerts after 5 seconds
-  const autoDismissAlerts = document.querySelectorAll('.alert-success');
-  autoDismissAlerts.forEach(alert => {
-    setTimeout(() => {
-      if (alert && alert.parentElement) {
-        alert.style.transition = 'opacity 0.4s ease';
-        alert.style.opacity = '0';
-        setTimeout(() => alert.remove(), 400);
-      }
-    }, 5000);
+  // Auto-dismiss top temporary flash notifications after 4.5 seconds
+  const flashAlerts = document.querySelectorAll('.flash-container .alert');
+  flashAlerts.forEach(alert => {
+    let dismissTimer = setTimeout(() => {
+      dismissAlert(alert);
+    }, 4500);
+
+    // Pause timer on hover, resume on mouse leave
+    alert.addEventListener('mouseenter', () => clearTimeout(dismissTimer));
+    alert.addEventListener('mouseleave', () => {
+      dismissTimer = setTimeout(() => dismissAlert(alert), 2500);
+    });
   });
 
   // Modal Open / Close Handlers
@@ -116,6 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // Initialize in-app notification center state
+  if (typeof initNotifications === 'function') {
+    initNotifications();
+  }
 });
 
 /* =============================================================
@@ -518,8 +532,126 @@ window.playSound = function(type) {
 
 
 /* =============================================================
-   Notification Center Dropdown Controller
+   Notification Center Dropdown & Interactive Dismiss Controller
    ============================================================= */
+
+function getDismissedNotifs() {
+  try {
+    return JSON.parse(localStorage.getItem('lifeboard_dismissed_notifs') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveDismissedNotif(notifId) {
+  if (!notifId) return;
+  const dismissed = getDismissedNotifs();
+  if (!dismissed.includes(notifId)) {
+    dismissed.push(notifId);
+    try {
+      localStorage.setItem('lifeboard_dismissed_notifs', JSON.stringify(dismissed));
+    } catch (e) {}
+  }
+}
+
+function updateNotificationUI() {
+  const container = document.getElementById('notifListContainer');
+  if (!container) return;
+
+  const activeItems = container.querySelectorAll('.notification-item:not([style*="display: none"])');
+  const count = activeItems.length;
+
+  const bellBadge = document.getElementById('notifBellBadge');
+  if (bellBadge) {
+    if (count > 0) {
+      bellBadge.textContent = count;
+      bellBadge.style.display = 'inline-flex';
+    } else {
+      bellBadge.style.display = 'none';
+    }
+  }
+
+  const headerCount = document.getElementById('notifHeaderCount');
+  if (headerCount) {
+    headerCount.textContent = `${count} New`;
+    if (count === 0) {
+      headerCount.style.display = 'none';
+    } else {
+      headerCount.style.display = 'inline-flex';
+    }
+  }
+
+  const emptyState = document.getElementById('notifEmptyState');
+  if (emptyState) {
+    emptyState.style.display = count === 0 ? 'block' : 'none';
+  }
+}
+
+window.dismissSingleNotif = function(e, notifId) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const item = document.getElementById(`notif-${notifId}`) || document.querySelector(`[data-notif-id="${notifId}"]`);
+  if (item) {
+    item.style.transition = 'all 0.25s ease';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(24px)';
+    item.style.maxHeight = '0px';
+    item.style.paddingTop = '0px';
+    item.style.paddingBottom = '0px';
+    item.style.borderBottom = 'none';
+    saveDismissedNotif(notifId);
+    setTimeout(() => {
+      item.style.display = 'none';
+      updateNotificationUI();
+    }, 260);
+  }
+};
+
+window.handleNotifClick = function(e, notifId, link) {
+  if (e) e.preventDefault();
+  saveDismissedNotif(notifId);
+  const item = document.getElementById(`notif-${notifId}`);
+  if (item) {
+    item.style.transition = 'all 0.2s ease';
+    item.style.opacity = '0';
+  }
+  setTimeout(() => {
+    if (link) window.location.href = link;
+  }, 150);
+};
+
+window.clearAllNotifs = function(e) {
+  if (e) e.preventDefault();
+  const container = document.getElementById('notifListContainer');
+  if (!container) return;
+
+  const items = container.querySelectorAll('.notification-item');
+  items.forEach(item => {
+    const notifId = item.getAttribute('data-notif-id');
+    if (notifId) saveDismissedNotif(notifId);
+    item.style.transition = 'all 0.25s ease';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(24px)';
+  });
+
+  setTimeout(() => {
+    items.forEach(item => item.style.display = 'none');
+    updateNotificationUI();
+  }, 260);
+};
+
+window.initNotifications = function() {
+  const dismissed = getDismissedNotifs();
+  if (dismissed && dismissed.length > 0) {
+    dismissed.forEach(id => {
+      const el = document.getElementById(`notif-${id}`) || document.querySelector(`[data-notif-id="${id}"]`);
+      if (el) el.style.display = 'none';
+    });
+  }
+  updateNotificationUI();
+};
 
 window.toggleNotificationDropdown = function() {
   const dd = document.getElementById('notificationDropdown');
