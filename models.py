@@ -1165,6 +1165,46 @@ def generate_monthly_report_data(user_id: int, month: int = None, year: int = No
 
 import re
 
+def extract_voice_amount(text: str) -> float:
+    """
+    Robust extraction of monetary amounts from speech transcripts.
+    Handles:
+      - Space-separated thousands (e.g. "25 000" -> 25000.0)
+      - Comma-separated numbers (e.g. "25,000" -> 25000.0)
+      - Word multipliers (e.g. "25 thousand", "25k", "1.5 lakh", "2 lac", "500 rs", "rs 25000")
+    """
+    norm = text.lower().replace(',', '').replace('₹', ' rs ')
+    # Normalize space-separated digits like "25 000", "1 50 000"
+    norm = re.sub(r'(?<=\d)\s+(?=\d{2,3}\b)', '', norm)
+
+    # 1. Multiplier keywords (thousand, k, grand, lakh, lac, crore, cr, hundred)
+    multiplier_match = re.search(r'(\d+(?:\.\d+)?)\s*(k\b|thousand\b|grand\b|lakhs?\b|lacs?\b|crores?\b|cr\b|hundred\b)', norm)
+    if multiplier_match:
+        val = float(multiplier_match.group(1))
+        unit = multiplier_match.group(2)
+        if unit in ('k', 'thousand', 'grand'):
+            return val * 1000.0
+        elif unit in ('lakh', 'lakhs', 'lac', 'lacs'):
+            return val * 100000.0
+        elif unit in ('crore', 'crores', 'cr'):
+            return val * 10000000.0
+        elif unit == 'hundred':
+            return val * 100.0
+
+    # 2. Currency prefix or suffix with digits: e.g. "rs 25000", "25000 rupees", "25000 inr"
+    amt_match = re.search(r'(?:rs\.?|rupees?|inr)\s*(\d+(?:\.\d{1,2})?)|(\d+(?:\.\d{1,2})?)\s*(?:rs\.?|rupees?|inr)', norm)
+    if amt_match:
+        amt_str = amt_match.group(1) or amt_match.group(2)
+        if amt_str:
+            return float(amt_str)
+
+    # 3. Any contiguous numeric value
+    nums = re.findall(r'\b\d+(?:\.\d{1,2})?\b', norm)
+    if nums:
+        return float(nums[0])
+
+    return 0.0
+
 def parse_and_execute_voice_command(user_id: int, speech_text: str):
     """
     Intelligently parses natural speech inputs from the microphone to instantly
@@ -1272,34 +1312,30 @@ def parse_and_execute_voice_command(user_id: int, speech_text: str):
     # -------------------------------------------------------------
     # D. Detect EXPENSE Intent
     # -------------------------------------------------------------
-    expense_keywords = ['spent', 'spend', 'expense', 'paid', 'cost', 'rupees', 'rs', 'inr', 'bought', 'purchase', 'bill']
-    if any(k in text for k in expense_keywords) and (re.search(r'\d+', text)):
-        amt_match = re.search(r'(?:rs\.?|rupees?|inr|₹)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rs\.?|rupees?|inr|₹)?', text)
-        amount = float(amt_match.group(1)) if amt_match else 0.0
+    expense_keywords = ['spent', 'spend', 'expense', 'paid', 'cost', 'rupees', 'rs', 'inr', 'bought', 'purchase', 'bill', 'thousand', 'lakh', 'lac']
+    if any(k in text for k in expense_keywords) and (re.search(r'\d+', text) or any(m in text for m in ['thousand', 'lakh', 'lac', 'k'])):
+        amount = extract_voice_amount(speech_text)
 
-        if amount <= 0:
-            nums = re.findall(r'\b\d+(?:\.\d+)?\b', text)
-            amount = float(nums[0]) if nums else 0.0
+        if amount > 0:
+            category = "Other"
+            if any(w in text for w in ['food', 'lunch', 'dinner', 'breakfast', 'pizza', 'burger', 'coffee', 'grocery', 'groceries', 'snack', 'restaurant', 'eating', 'swiggy', 'zomato', 'drink']):
+                category = "Food"
+            elif any(w in text for w in ['transport', 'metro', 'cab', 'uber', 'ola', 'auto', 'bus', 'fuel', 'petrol', 'diesel', 'travel', 'train', 'ticket']):
+                category = "Transport"
+            elif any(w in text for w in ['health', 'medicine', 'doctor', 'clinic', 'gym fee', 'supplement', 'protein', 'pharma', 'hospital']):
+                category = "Health"
+            elif any(w in text for w in ['movie', 'entertainment', 'cinema', 'game', 'netflix', 'party', 'show', 'concert', 'outing', 'shopping', 'clothes', 'rent', 'fee', 'fees']):
+                category = "Entertainment"
 
-        category = "Other"
-        if any(w in text for w in ['food', 'lunch', 'dinner', 'breakfast', 'pizza', 'burger', 'coffee', 'grocery', 'groceries', 'snack', 'restaurant', 'eating', 'swiggy', 'zomato', 'drink']):
-            category = "Food"
-        elif any(w in text for w in ['transport', 'metro', 'cab', 'uber', 'ola', 'auto', 'bus', 'fuel', 'petrol', 'diesel', 'travel', 'train', 'ticket']):
-            category = "Transport"
-        elif any(w in text for w in ['health', 'medicine', 'doctor', 'clinic', 'gym fee', 'supplement', 'protein', 'pharma', 'hospital']):
-            category = "Health"
-        elif any(w in text for w in ['movie', 'entertainment', 'cinema', 'game', 'netflix', 'party', 'show', 'concert', 'outing']):
-            category = "Entertainment"
-
-        desc = speech_text.strip()
-        success, msg = log_expense(user_id, amount, category, desc, today.strftime('%Y-%m-%d'))
-        return success, msg, {
-            'module': 'Personal Finance',
-            'type': 'Expense',
-            'action': f"Recorded ₹{amount:.2f} for {category}",
-            'icon': 'fa-indian-rupee-sign',
-            'redirect': '/finance'
-        }
+            desc = speech_text.strip()
+            success, msg = log_expense(user_id, amount, category, desc, today.strftime('%Y-%m-%d'))
+            return success, msg, {
+                'module': 'Personal Finance',
+                'type': 'Expense',
+                'action': f"Recorded ₹{amount:,.2f} for {category}",
+                'icon': 'fa-indian-rupee-sign',
+                'redirect': '/finance'
+            }
 
     # -------------------------------------------------------------
     # E. Fallback to General Task

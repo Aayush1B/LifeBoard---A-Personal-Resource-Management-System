@@ -286,6 +286,21 @@ class LifeBoardTestCase(unittest.TestCase):
         self.assertTrue(e_success)
         self.assertEqual(e_info['type'], 'Expense')
 
+        # Test Voice Expense with space-separated thousand: "spend 25 000 rupees"
+        e2_success, e2_msg, e2_info = models.parse_and_execute_voice_command(uid, "spend 25 000 rupees on shopping")
+        self.assertTrue(e2_success)
+        self.assertIn("25,000.00", e2_info['action'])
+
+        # Test Voice Expense with multiplier words: "paid 15 thousand for rent"
+        e3_success, e3_msg, e3_info = models.parse_and_execute_voice_command(uid, "paid 15 thousand for rent")
+        self.assertTrue(e3_success)
+        self.assertIn("15,000.00", e3_info['action'])
+
+        # Test Voice Expense with k suffix: "spent 2.5k on dinner"
+        e4_success, e4_msg, e4_info = models.parse_and_execute_voice_command(uid, "spent 2.5k on dinner")
+        self.assertTrue(e4_success)
+        self.assertIn("2,500.00", e4_info['action'])
+
         # Test Voice Habit Parsing
         h_success, h_msg, h_info = models.parse_and_execute_voice_command(uid, "Add habit drink 4 liters of water daily")
         self.assertTrue(h_success)

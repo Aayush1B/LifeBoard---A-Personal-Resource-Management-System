@@ -90,3 +90,126 @@ function openEditExpenseModal(expenseId, amount, category, description, expenseD
   openModal('editExpenseModal');
 }
 
+// -------------------------------------------------------------
+// Live Interactive Table & Card Filter / Sort Engine
+// -------------------------------------------------------------
+function applyLiveFilter(config) {
+  const {
+    searchInputId,
+    filterSelectId,
+    sortSelectId,
+    tableBodyId,
+    cardListClass,
+    itemRowSelector,
+    cardSelector,
+    onFilter
+  } = config;
+
+  const searchInput = document.getElementById(searchInputId);
+  const filterSelect = document.getElementById(filterSelectId);
+  const sortSelect = document.getElementById(sortSelectId);
+  const tableBody = document.getElementById(tableBodyId);
+  const cardList = cardListClass ? document.querySelector(cardListClass) : null;
+
+  function executeFilter() {
+    const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+    const fVal = filterSelect ? filterSelect.value : 'all';
+    const sVal = sortSelect ? sortSelect.value : 'default';
+
+    // 1. Process Table Rows
+    if (tableBody) {
+      const rows = Array.from(tableBody.querySelectorAll(itemRowSelector || 'tr'));
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const matchesSearch = !q || text.includes(q);
+        const matchesFilter = !filterSelect || fVal === 'all' ||
+          (row.dataset.category && row.dataset.category === fVal) ||
+          (row.dataset.priority && row.dataset.priority === fVal) ||
+          (row.dataset.activity && row.dataset.activity === fVal) ||
+          (row.dataset.role && row.dataset.role === fVal) ||
+          (row.dataset.module && row.dataset.module === fVal) ||
+          (row.dataset.recurring && row.dataset.recurring === fVal);
+
+        row.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+      });
+
+      // Sort rows
+      if (sVal !== 'default' && rows.length > 0) {
+        rows.sort((a, b) => compareItems(a, b, sVal));
+        rows.forEach(r => tableBody.appendChild(r));
+      }
+    }
+
+    // 2. Process Mobile Cards
+    if (cardList) {
+      const cards = Array.from(cardList.querySelectorAll(cardSelector || '.mobile-data-card'));
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const matchesSearch = !q || text.includes(q);
+        const matchesFilter = !filterSelect || fVal === 'all' ||
+          (card.dataset.category && card.dataset.category === fVal) ||
+          (card.dataset.priority && card.dataset.priority === fVal) ||
+          (card.dataset.activity && card.dataset.activity === fVal) ||
+          (card.dataset.role && card.dataset.role === fVal) ||
+          (card.dataset.module && card.dataset.module === fVal) ||
+          (card.dataset.recurring && card.dataset.recurring === fVal);
+
+        card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+      });
+
+      // Sort cards
+      if (sVal !== 'default' && cards.length > 0) {
+        cards.sort((a, b) => compareItems(a, b, sVal));
+        cards.forEach(c => cardList.appendChild(c));
+      }
+    }
+
+    // 3. Process Kanban Cards
+    const kanbanCards = document.querySelectorAll('.kanban-card');
+    if (kanbanCards.length > 0) {
+      kanbanCards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const matchesSearch = !q || text.includes(q);
+        const matchesFilter = !filterSelect || fVal === 'all' ||
+          (card.dataset.priority && card.dataset.priority === fVal) ||
+          (card.dataset.recurring && card.dataset.recurring === fVal);
+        card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+      });
+    }
+
+    if (onFilter) onFilter();
+  }
+
+  function compareItems(a, b, sortRule) {
+    if (sortRule === 'date-desc') {
+      return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+    } else if (sortRule === 'date-asc') {
+      return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+    } else if (sortRule === 'amount-desc') {
+      return (parseFloat(b.dataset.amount) || 0) - (parseFloat(a.dataset.amount) || 0);
+    } else if (sortRule === 'amount-asc') {
+      return (parseFloat(a.dataset.amount) || 0) - (parseFloat(b.dataset.amount) || 0);
+    } else if (sortRule === 'title-asc' || sortRule === 'name-asc') {
+      const ta = (a.dataset.title || a.dataset.name || '').toLowerCase();
+      const tb = (b.dataset.title || b.dataset.name || '').toLowerCase();
+      return ta.localeCompare(tb);
+    } else if (sortRule === 'priority-desc') {
+      const weights = { 'high': 3, 'medium': 2, 'low': 1 };
+      return (weights[b.dataset.priority] || 0) - (weights[a.dataset.priority] || 0);
+    } else if (sortRule === 'priority-asc') {
+      const weights = { 'high': 3, 'medium': 2, 'low': 1 };
+      return (weights[a.dataset.priority] || 0) - (weights[b.dataset.priority] || 0);
+    } else if (sortRule === 'calories-desc') {
+      return (parseFloat(b.dataset.calories) || 0) - (parseFloat(a.dataset.calories) || 0);
+    } else if (sortRule === 'duration-desc') {
+      return (parseFloat(b.dataset.duration) || 0) - (parseFloat(a.dataset.duration) || 0);
+    }
+    return 0;
+  }
+
+  if (searchInput) searchInput.addEventListener('input', executeFilter);
+  if (filterSelect) filterSelect.addEventListener('change', executeFilter);
+  if (sortSelect) sortSelect.addEventListener('change', executeFilter);
+}
+
+

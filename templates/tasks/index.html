@@ -79,6 +79,38 @@
   </div>
 </div>
 
+<!-- Interactive Search, Filter & Sort Toolbar -->
+<div class="filter-toolbar">
+  <div class="search-box">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="taskSearchInput" class="form-control" placeholder="Search tasks by title or details...">
+  </div>
+  
+  <select id="taskPriorityFilter" class="filter-select">
+    <option value="all">⚡ All Priorities</option>
+    <option value="high">🔴 High Priority</option>
+    <option value="medium">🟠 Medium Priority</option>
+    <option value="low">🟢 Low Priority</option>
+  </select>
+
+  <select id="taskRecurrenceFilter" class="filter-select">
+    <option value="all">🔄 All Recurrence</option>
+    <option value="none">One-off Only</option>
+    <option value="daily">Daily Repeat</option>
+    <option value="weekly">Weekly Repeat</option>
+    <option value="monthly">Monthly Repeat</option>
+  </select>
+
+  <select id="taskSortSelect" class="sort-select">
+    <option value="default">⚡ Sort: Default</option>
+    <option value="date-asc">⏳ Deadline (Nearest First)</option>
+    <option value="date-desc">⌛ Deadline (Farthest First)</option>
+    <option value="priority-desc">🔴 Priority (High → Low)</option>
+    <option value="priority-asc">🟢 Priority (Low → High)</option>
+    <option value="title-asc">🔤 Title (A → Z)</option>
+  </select>
+</div>
+
 {% if view_mode == 'board' %}
 <!-- Kanban Board View -->
 <div class="kanban-grid">
@@ -89,7 +121,7 @@
       <span class="badge badge-secondary">{{ pending_tasks | length }}</span>
     </div>
     {% for task in pending_tasks %}
-    <div class="kanban-card">
+    <div class="kanban-card" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
@@ -131,7 +163,7 @@
       <span class="badge badge-secondary">{{ in_progress_tasks | length }}</span>
     </div>
     {% for task in in_progress_tasks %}
-    <div class="kanban-card" style="border-left: 3px solid #ea580c;">
+    <div class="kanban-card" style="border-left: 3px solid #ea580c;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
@@ -169,7 +201,7 @@
       <span class="badge badge-secondary">{{ done_tasks | length }}</span>
     </div>
     {% for task in done_tasks %}
-    <div class="kanban-card" style="opacity: 0.75;">
+    <div class="kanban-card" style="opacity: 0.75;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <h4 style="font-size: 14px; text-decoration: line-through; margin-bottom: 6px;">{{ task.title }}</h4>
         {% if task.recurring and task.recurring != 'none' %}
@@ -200,9 +232,9 @@
           <th style="text-align: right;">Actions</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="taskTableBody">
         {% for t in tasks %}
-        <tr class="{% if t.status == 'done' %}task-item status-done{% endif %}">
+        <tr class="{% if t.status == 'done' %}task-item status-done{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}">
           <td>
             <form action="{{ url_for('update_task_status_route', task_id=t.task_id) }}" method="POST" style="margin: 0;">
               {% if t.status == 'done' %}
@@ -275,9 +307,9 @@
   </div>
 
   <!-- Smartphone Adaptive Task Cards -->
-  <div class="mobile-card-list">
+  <div class="mobile-card-list" id="taskCardList">
     {% for t in tasks %}
-    <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}">
+    <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}">
       <div class="mobile-card-header">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
@@ -419,4 +451,30 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    applyLiveFilter({
+      searchInputId: 'taskSearchInput',
+      filterSelectId: 'taskPriorityFilter',
+      sortSelectId: 'taskSortSelect',
+      tableBodyId: 'taskTableBody',
+      cardListClass: '#taskCardList'
+    });
+
+    const recFilter = document.getElementById('taskRecurrenceFilter');
+    if (recFilter) {
+      recFilter.addEventListener('change', function() {
+        const val = recFilter.value;
+        const rows = document.querySelectorAll('#taskTableBody tr, #taskCardList .mobile-data-card, .kanban-card');
+        rows.forEach(r => {
+          const match = (val === 'all' || r.dataset.recurring === val);
+          r.style.display = match ? '' : 'none';
+        });
+      });
+    }
+  });
+</script>
 {% endblock %}

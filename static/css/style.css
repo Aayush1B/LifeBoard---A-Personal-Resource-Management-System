@@ -1551,5 +1551,67 @@ a {
   color: #94a3b8;
 }
 
+/* -------------------------------------------------------------
+   Interactive Sort & Filter Toolbar
+   ------------------------------------------------------------- */
+.filter-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.filter-toolbar .search-box {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.filter-toolbar .search-box i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.filter-toolbar .search-box input {
+  padding-left: 34px;
+  font-size: 13px;
+  height: 36px;
+}
+
+.filter-toolbar .filter-select,
+.filter-toolbar .sort-select {
+  font-size: 12.5px;
+  height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  min-width: 135px;
+}
+
+[data-theme="dark"] .filter-toolbar {
+  background-color: #0c1322;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .filter-toolbar .filter-select,
+[data-theme="dark"] .filter-toolbar .sort-select {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+
 
 

@@ -41,6 +41,27 @@
     <span class="badge badge-primary">{{ users | length }} Total</span>
   </div>
 
+  <!-- User Filter & Sort Toolbar -->
+  <div class="filter-toolbar" style="margin: 0 16px 14px 16px;">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="userSearchInput" class="form-control" placeholder="Search users by name, email or ID...">
+    </div>
+    
+    <select id="userRoleFilter" class="filter-select">
+      <option value="all">👥 All Roles</option>
+      <option value="admin">🛡️ Admin Only</option>
+      <option value="user">👤 User Only</option>
+    </select>
+
+    <select id="userSortSelect" class="sort-select">
+      <option value="default">⚡ Sort: Default</option>
+      <option value="name-asc">🔤 Name (A → Z)</option>
+      <option value="date-desc">📅 Joined (Newest First)</option>
+      <option value="date-asc">🗓️ Joined (Oldest First)</option>
+    </select>
+  </div>
+
   <div class="table-responsive">
     <table class="table-custom">
       <thead>
@@ -54,9 +75,9 @@
           <th style="text-align: right;">Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="userTableBody">
         {% for u in users %}
-        <tr>
+        <tr data-name="{{ u.name | escape }}" data-role="{{ u.role }}" data-date="{{ u.created_at }}">
           <td><code>#{{ u.user_id }}</code></td>
           <td style="font-weight: 600;">
             {{ u.name }}
@@ -100,6 +121,24 @@
     <span class="badge badge-secondary">{{ logs | length }} Logged</span>
   </div>
 
+  <!-- Audit Logs Filter Toolbar -->
+  <div class="filter-toolbar" style="margin: 0 16px 14px 16px;">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="auditSearchInput" class="form-control" placeholder="Search audit logs by action, user or details...">
+    </div>
+    
+    <select id="auditModuleFilter" class="filter-select">
+      <option value="all">📦 All Modules</option>
+      <option value="Auth">🔐 Auth</option>
+      <option value="Health">🏋️ Health</option>
+      <option value="Tasks">📋 Tasks</option>
+      <option value="Finance">💳 Finance</option>
+      <option value="Admin">🛡️ Admin</option>
+      <option value="Profile">👤 Profile</option>
+    </select>
+  </div>
+
   <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
     <table class="table-custom" style="font-size: 12.5px;">
       <thead>
@@ -111,9 +150,9 @@
           <th>Details</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="auditTableBody">
         {% for log in logs %}
-        <tr>
+        <tr data-module="{{ log.module }}" data-date="{{ log.timestamp }}">
           <td style="white-space: nowrap; color: var(--text-muted); font-family: monospace;">{{ log.timestamp }}</td>
           <td>
             <div style="font-weight: 600;">{{ log.user_name }}</div>
@@ -177,3 +216,25 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 1. User Management Filter & Sort
+    applyLiveFilter({
+      searchInputId: 'userSearchInput',
+      filterSelectId: 'userRoleFilter',
+      sortSelectId: 'userSortSelect',
+      tableBodyId: 'userTableBody'
+    });
+
+    // 2. Audit Logs Filter
+    applyLiveFilter({
+      searchInputId: 'auditSearchInput',
+      filterSelectId: 'auditModuleFilter',
+      tableBodyId: 'auditTableBody'
+    });
+  });
+</script>
+{% endblock %}
+

@@ -79,6 +79,34 @@
       </div>
 
       {% if workouts %}
+      <!-- Interactive Search, Filter & Sort Toolbar -->
+      <div class="filter-toolbar" style="margin: 0 16px 14px 16px;">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="workoutSearchInput" class="form-control" placeholder="Search workout notes, activity...">
+        </div>
+        
+        <select id="workoutActivityFilter" class="filter-select">
+          <option value="all">⚡ All Activities</option>
+          <option value="Gym">🏋️ Gym</option>
+          <option value="Running">🏃 Running</option>
+          <option value="Cycling">🚴 Cycling</option>
+          <option value="Swimming">🏊 Swimming</option>
+          <option value="Yoga">🧘 Yoga</option>
+          <option value="Walking">🚶 Walking</option>
+          <option value="HIIT">⚡ HIIT</option>
+          <option value="Sports">🏅 Sports</option>
+        </select>
+
+        <select id="workoutSortSelect" class="sort-select">
+          <option value="default">⚡ Sort: Default</option>
+          <option value="calories-desc">🔥 Calories (High → Low)</option>
+          <option value="duration-desc">⏱️ Duration (Long → Short)</option>
+          <option value="date-desc">📅 Date (Newest First)</option>
+          <option value="date-asc">🗓️ Date (Oldest First)</option>
+        </select>
+      </div>
+
       <!-- Desktop Table View -->
       <div class="table-responsive desktop-only-table">
         <table class="table-custom">
@@ -92,9 +120,9 @@
               <th style="text-align: right;">Action</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="workoutTableBody">
             {% for w in workouts %}
-            <tr>
+            <tr data-activity="{{ w.activity_type }}" data-calories="{{ w.calories }}" data-duration="{{ w.duration_mins }}" data-date="{{ w.log_date }}">
               <td style="font-weight: 600; white-space: nowrap;">{{ w.log_date }}</td>
               <td>
                 <span class="badge badge-primary">
@@ -124,9 +152,9 @@
       </div>
 
       <!-- Smartphone Adaptive Card View -->
-      <div class="mobile-card-list">
+      <div class="mobile-card-list" id="workoutCardList">
         {% for w in workouts %}
-        <div class="mobile-data-card">
+        <div class="mobile-data-card" data-activity="{{ w.activity_type }}" data-calories="{{ w.calories }}" data-duration="{{ w.duration_mins }}" data-date="{{ w.log_date }}">
           <div class="mobile-card-header">
             <span class="badge badge-primary">
               {% if w.activity_type == 'Gym' %}🏋️ Gym
@@ -318,5 +346,15 @@
   const healthDuration = {{ workout_chart.duration | tojson }};
 
   initWorkoutBarChart('healthWorkoutChart', healthLabels, healthCalories, healthDuration);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    applyLiveFilter({
+      searchInputId: 'workoutSearchInput',
+      filterSelectId: 'workoutActivityFilter',
+      sortSelectId: 'workoutSortSelect',
+      tableBodyId: 'workoutTableBody',
+      cardListClass: '#workoutCardList'
+    });
+  });
 </script>
 {% endblock %}

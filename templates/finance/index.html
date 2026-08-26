@@ -115,6 +115,31 @@
   </div>
 
   {% if expenses %}
+  <!-- Interactive Search, Filter & Sort Toolbar -->
+  <div class="filter-toolbar" style="margin: 0 16px 14px 16px;">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="expenseSearchInput" class="form-control" placeholder="Search expenses by note, item or amount...">
+    </div>
+    
+    <select id="expenseCategoryFilter" class="filter-select">
+      <option value="all">🏷️ All Categories</option>
+      <option value="Food">🍔 Food & Dining</option>
+      <option value="Transport">🚗 Transport</option>
+      <option value="Health">💊 Healthcare</option>
+      <option value="Entertainment">🎬 Entertainment</option>
+      <option value="Other">📦 Other</option>
+    </select>
+
+    <select id="expenseSortSelect" class="sort-select">
+      <option value="default">⚡ Sort: Default</option>
+      <option value="amount-desc">💰 Amount (High → Low)</option>
+      <option value="amount-asc">🪙 Amount (Low → High)</option>
+      <option value="date-desc">📅 Date (Newest First)</option>
+      <option value="date-asc">🗓️ Date (Oldest First)</option>
+    </select>
+  </div>
+
   <!-- Desktop Table View -->
   <div class="table-responsive desktop-only-table">
     <table class="table-custom">
@@ -127,9 +152,9 @@
           <th style="text-align: right;">Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="expenseTableBody">
         {% for exp in expenses %}
-        <tr>
+        <tr data-category="{{ exp.category }}" data-amount="{{ exp.amount }}" data-date="{{ exp.expense_date }}">
           <td style="font-weight: 600; white-space: nowrap;">{{ exp.expense_date }}</td>
           <td>
             <span class="badge {% if exp.category == 'Food' %}badge-warning{% elif exp.category == 'Transport' %}badge-secondary{% elif exp.category == 'Health' %}badge-success{% else %}badge-primary{% endif %}">
@@ -160,9 +185,9 @@
   </div>
 
   <!-- Smartphone Adaptive Expense Cards -->
-  <div class="mobile-card-list">
+  <div class="mobile-card-list" id="expenseCardList">
     {% for exp in expenses %}
-    <div class="mobile-data-card">
+    <div class="mobile-data-card" data-category="{{ exp.category }}" data-amount="{{ exp.amount }}" data-date="{{ exp.expense_date }}">
       <div class="mobile-card-header">
         <span class="badge {% if exp.category == 'Food' %}badge-warning{% elif exp.category == 'Transport' %}badge-secondary{% elif exp.category == 'Health' %}badge-success{% else %}badge-primary{% endif %}">
           {% if exp.category == 'Food' %}🍔 Food
@@ -306,5 +331,15 @@
   const dailyLabels = {{ daily_chart.labels | tojson }};
   const dailyAmounts = {{ daily_chart.amounts | tojson }};
   initDailySpendingChart('financeDailyChart', dailyLabels, dailyAmounts);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    applyLiveFilter({
+      searchInputId: 'expenseSearchInput',
+      filterSelectId: 'expenseCategoryFilter',
+      sortSelectId: 'expenseSortSelect',
+      tableBodyId: 'expenseTableBody',
+      cardListClass: '#expenseCardList'
+    });
+  });
 </script>
 {% endblock %}
