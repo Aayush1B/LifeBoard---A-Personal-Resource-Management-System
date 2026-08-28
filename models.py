@@ -260,13 +260,14 @@ def add_habit(user_id: int, habit_name: str):
     if not habit_name.strip():
         return False, "Habit name cannot be empty."
 
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-        INSERT INTO habit_tracker (user_id, habit_name, streak_count, last_completed_date)
-        VALUES (?, ?, 0, NULL)
-        """, (user_id, habit_name.strip()))
+        INSERT INTO habit_tracker (user_id, habit_name, streak_count, last_completed_date, created_at)
+        VALUES (?, ?, 0, NULL, ?)
+        """, (user_id, habit_name.strip(), now_str))
         conn.commit()
         log_audit(user_id, "", 'HABIT_ADDED', 'Health', f"Added new habit '{habit_name.strip()}'")
         return True, "Habit added successfully."
@@ -437,13 +438,14 @@ def calculate_and_save_bmi(user_id: int, height_cm: float, weight_kg: float):
         category = "Obese"
         category_color = "danger"
 
+    today_str = date.today().strftime('%Y-%m-%d')
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-        INSERT INTO bmi_records (user_id, height_cm, weight_kg, bmi_value, category)
-        VALUES (?, ?, ?, ?, ?)
-        """, (user_id, height_cm, weight_kg, bmi_value, category))
+        INSERT INTO bmi_records (user_id, height_cm, weight_kg, bmi_value, category, recorded_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, height_cm, weight_kg, bmi_value, category, today_str))
         new_id = cursor.lastrowid
         conn.commit()
         log_audit(user_id, "", 'BMI_CALCULATED', 'Health', f"Calculated BMI: {bmi_value} ({category})")
@@ -517,13 +519,14 @@ def create_task(user_id: int, title: str, description: str, priority: str, deadl
     if recurring not in ('none', 'daily', 'weekly', 'monthly'):
         recurring = 'none'
 
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-        INSERT INTO tasks (user_id, title, description, priority, status, recurring, deadline)
-        VALUES (?, ?, ?, ?, 'pending', ?, ?)
-        """, (user_id, title.strip(), description.strip() if description else "", priority, recurring, deadline))
+        INSERT INTO tasks (user_id, title, description, priority, status, recurring, deadline, created_at)
+        VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
+        """, (user_id, title.strip(), description.strip() if description else "", priority, recurring, deadline, now_str))
         conn.commit()
         log_audit(user_id, "", 'TASK_CREATED', 'Tasks', f"Created task '{title.strip()}' [Priority: {priority}, Recurrence: {recurring}]")
         return True, "Task created successfully."
@@ -1504,7 +1507,8 @@ def calculate_lifescore(user_id: int):
 
 def get_ai_daily_briefing(user_id: int):
     """
-    Synthesizes current day metrics into a personalized, actionable AI briefing card.
+    Synthesizes current day metrics across all 4 pillars (Tasks, Habits, Workouts, and Predictive Financial Velocity)
+    into an unified Executive AI Daily Briefing.
     """
     user = get_user_by_id(user_id)
     user_name = user['name'].split()[0] if user else 'Friend'
@@ -1521,31 +1525,36 @@ def get_ai_daily_briefing(user_id: int):
 
     task_summary = get_task_summary(user_id)
     upcoming_tasks = get_upcoming_tasks(user_id, days=2)
-    fin_summary = get_financial_summary(user_id, now.month, now.year)
+    fin_forecast = get_financial_projection(user_id)
 
-    insights = []
+    # 1. Tasks insight (Short & Clickable)
     if task_summary['overdue'] > 0:
-        insights.append(f"⚠️ You have {task_summary['overdue']} overdue task requiring attention.")
+        tasks_text = f"⚠️ <a href='/tasks' class='ai-link'>{task_summary['overdue']} overdue task{'s' if task_summary['overdue'] > 1 else ''}</a> need attention"
     elif upcoming_tasks:
-        insights.append(f"📋 {len(upcoming_tasks)} task{'s are' if len(upcoming_tasks) > 1 else ' is'} due within 48 hours.")
+        tasks_text = f"📋 <a href='/tasks' class='ai-link'>{len(upcoming_tasks)} task{'s' if len(upcoming_tasks) > 1 else ''} due soon</a>"
     else:
-        insights.append("✨ All scheduled tasks are clear and on track!")
+        tasks_text = "✨ <a href='/tasks' class='ai-link'>Tasks on track</a>"
 
+    # 2. Habits insight (Short & Clickable)
     if pending_habits > 0:
-        insights.append(f"🔥 {pending_habits} habit{'s' if pending_habits > 1 else ''} pending today to protect your {max_streak}-day streak.")
+        habits_text = f"🔥 <a href='/health' class='ai-link'>{pending_habits} habit{'s' if pending_habits > 1 else ''} pending</a> ({max_streak}d streak)"
     else:
-        insights.append(f"🎉 Fantastic consistency! All daily habits checked off.")
+        habits_text = "🎉 <a href='/health' class='ai-link'>All habits checked</a>"
 
-    if fin_summary['is_over_budget']:
-        insights.append(f"💳 Caution: Budget exceeded by ₹{fin_summary['over_budget_amount']:,.0f}.")
+    # 3. Financial Pace & Forecast insight (Short & Clickable)
+    if fin_forecast['status'] == 'danger':
+        fin_text = f"💳 <a href='/finance' class='ai-link'>₹{fin_forecast['spent']:,.0f} spent</a> (budget exceeded)"
+    elif fin_forecast['status'] == 'warning':
+        fin_text = f"⚡ <a href='/finance' class='ai-link'>₹{fin_forecast['spent']:,.0f} spent</a> (safe: ₹{fin_forecast['safe_daily_spend']:,.0f}/day)"
     else:
-        insights.append(f"💰 ₹{fin_summary['savings']:,.0f} savings buffer remaining this month.")
+        fin_text = f"💰 <a href='/finance' class='ai-link'>₹{fin_forecast['spent']:,.0f} spent</a> (safe: ₹{fin_forecast['safe_daily_spend']:,.0f}/day)"
 
-    message = f"{greeting}, {user_name}! " + " ".join(insights[:2])
+    # Short, punchy, clean summary sentence
+    message = f"{tasks_text}, {habits_text}, and {fin_text}."
     return {
         'greeting': f"{greeting}, {user_name}",
         'message': message,
-        'insights': insights
+        'forecast': fin_forecast
     }
 
 

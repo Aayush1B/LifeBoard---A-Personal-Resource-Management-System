@@ -148,8 +148,11 @@
       {% if task.description %}
       <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">{{ task.description }}</p>
       {% endif %}
-      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
-        <i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        <span><i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}</span>
+        {% if task.created_at %}
+          <span title="Created on {{ task.created_at }}"><i class="fa-regular fa-calendar-plus"></i> {{ task.created_at[:10] }}</span>
+        {% endif %}
       </div>
       <div style="display: flex; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
         <form action="{{ url_for('update_task_status_route', task_id=task.task_id) }}" method="POST" style="margin: 0;">
@@ -190,8 +193,11 @@
       {% if task.description %}
       <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">{{ task.description }}</p>
       {% endif %}
-      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
-        <i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+        <span><i class="fa-regular fa-clock"></i> {{ task.deadline_dt.strftime('%d %b, %I:%M %p') }}</span>
+        {% if task.created_at %}
+          <span title="Created on {{ task.created_at }}"><i class="fa-regular fa-calendar-plus"></i> {{ task.created_at[:10] }}</span>
+        {% endif %}
       </div>
       <div style="display: flex; gap: 6px; border-top: 1px solid var(--border-light); padding-top: 8px;">
         <form action="{{ url_for('update_task_status_route', task_id=task.task_id) }}" method="POST" style="margin: 0;">
@@ -217,8 +223,11 @@
           <span class="badge badge-secondary" style="font-size: 10px;" title="Repeats {{ task.recurring|title }}"><i class="fa-solid fa-repeat"></i> {{ task.recurring|title }}</span>
         {% endif %}
       </div>
-      <div style="font-size: 11px; color: var(--text-muted);">
-        Completed on {{ task.completed_at or 'Recently' }}
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted);">
+        <span>Completed on {{ task.completed_at or 'Recently' }}</span>
+        {% if task.created_at %}
+          <span title="Created on {{ task.created_at }}"><i class="fa-regular fa-calendar-plus"></i> {{ task.created_at[:10] }}</span>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -266,6 +275,11 @@
             </div>
             {% if t.description %}
             <div style="font-size: 12px; color: var(--text-muted);">{{ t.description }}</div>
+            {% endif %}
+            {% if t.created_at %}
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 4px;" title="Created on {{ t.created_at }}">
+              <i class="fa-regular fa-calendar-plus" style="font-size: 10px;"></i> Started {{ t.created_at[:10] }}
+            </div>
             {% endif %}
           </td>
 
@@ -331,7 +345,12 @@
             <span class="badge badge-due-soon">Due Soon</span>
           {% endif %}
         </div>
-        <span style="font-size: 11px; color: var(--text-muted);">{{ t.deadline_dt.strftime('%d %b, %I:%M %p') }}</span>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+          <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> {{ t.deadline_dt.strftime('%d %b, %I:%M %p') }}</span>
+          {% if t.created_at %}
+            <span style="font-size: 10px; color: var(--text-muted);"><i class="fa-regular fa-calendar-plus"></i> {{ t.created_at[:10] }}</span>
+          {% endif %}
+        </div>
       </div>
 
       <div style="display: flex; align-items: flex-start; gap: 10px; margin: 4px 0;">

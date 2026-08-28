@@ -127,12 +127,13 @@ class LifeBoardTestCase(unittest.TestCase):
         user = models.get_user_by_email('aayush@lifeboard.com')
         uid = user['user_id']
 
+        h_name = f'Test Unique Streak Habit {datetime.now().timestamp()}'
         # Add a new habit (FR-15)
-        success, msg = models.add_habit(uid, 'Test Streak Habit')
+        success, msg = models.add_habit(uid, h_name)
         self.assertTrue(success)
 
         habits = models.get_user_habits(uid)
-        target = [h for h in habits if h['habit_name'] == 'Test Streak Habit'][0]
+        target = [h for h in habits if h['habit_name'] == h_name][0]
 
         # First completion today -> Streak should become 1
         t_success, t_msg = models.toggle_habit_today(uid, target['habit_id'])
@@ -142,6 +143,9 @@ class LifeBoardTestCase(unittest.TestCase):
         updated_target = [h for h in updated_habits if h['habit_id'] == target['habit_id']][0]
         self.assertEqual(updated_target['streak_count'], 1)
         self.assertEqual(updated_target['done_today'], 1)
+
+        # Cleanup
+        models.delete_habit(uid, target['habit_id'])
 
     def test_08_bmi_calculation_and_classification(self):
         user = models.get_user_by_email('aayush@lifeboard.com')
@@ -384,7 +388,21 @@ class LifeBoardTestCase(unittest.TestCase):
         briefing = models.get_ai_daily_briefing(uid)
         self.assertIn('greeting', briefing)
         self.assertIn('message', briefing)
+        self.assertIn('forecast', briefing)
+        self.assertIn('ai-link', briefing['message'])
         self.assertGreater(len(briefing['message']), 10)
+
+        # Test Dashboard HTTP rendering with unified briefing
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        resp = self.client.get('/dashboard')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b'AI Daily Briefing', resp.data)
+        self.assertIn(b'LifeScore', resp.data)
 
     # -------------------------------------------------------------
     # 11. Multi-Domain Calendar Integration Tests
@@ -629,7 +647,178 @@ class LifeBoardTestCase(unittest.TestCase):
         # Cleanup
         models.delete_expense(2, exp_id)
 
+    # -------------------------------------------------------------
+    # 23. Database Integrity & Foreign Key Cascade Tests
+    # -------------------------------------------------------------
+    def test_30_database_integrity_and_cascades(self):
+        # 1. Create a dummy user
+        test_email = f"cascade_test_{int(datetime.now().timestamp())}@lifeboard.com"
+        success, uid = models.register_user("Cascade User", test_email, "pass123")
+        self.assertTrue(success)
+
+        # 2. Add records across all tables for this user
+        models.log_workout(uid, "Gym", 30, 200, date.today().strftime('%Y-%m-%d'))
+        models.create_task(uid, "Cascade Task", "desc", "medium", (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'))
+        models.add_habit(uid, "Cascade Habit")
+        models.log_expense(uid, 500, "Food", "desc", date.today().strftime('%Y-%m-%d'))
+        models.calculate_and_save_bmi(uid, 175, 70)
+
+        # Verify records exist
+        self.assertEqual(len(models.get_user_workouts(uid)), 1)
+        self.assertEqual(len(models.get_user_tasks(uid, 'all')), 1)
+        self.assertEqual(len(models.get_user_habits(uid)), 1)
+        self.assertEqual(len(models.get_user_expenses(uid)), 1)
+        self.assertEqual(len(models.get_user_bmi_history(uid)), 1)
+
+        # 3. Delete user via admin cascade function
+        del_succ, del_msg = models.delete_user_by_admin(1, uid)
+        self.assertTrue(del_succ)
+
+        # Verify all child records were cleanly cascaded
+        self.assertEqual(len(models.get_user_workouts(uid)), 0)
+        self.assertEqual(len(models.get_user_tasks(uid, 'all')), 0)
+        self.assertEqual(len(models.get_user_habits(uid)), 0)
+        self.assertEqual(len(models.get_user_expenses(uid)), 0)
+        self.assertEqual(len(models.get_user_bmi_history(uid)), 0)
+
+    # -------------------------------------------------------------
+    # 24. System Error Handling & Boundary Condition Tests
+    # -------------------------------------------------------------
+    def test_31_error_handling_and_boundary_conditions(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        # 1. 404 Route handling
+        resp_404 = self.client.get('/nonexistent-route-xyz')
+        self.assertEqual(resp_404.status_code, 404)
+
+        # 2. Deleting non-existent task returns error or safe redirect without crashing
+        del_fake_task = self.client.post('/tasks/delete/999999', follow_redirects=True)
+        self.assertEqual(del_fake_task.status_code, 200)
+
+        # 3. Deleting non-existent expense returns safe redirect without crashing
+        del_fake_exp = self.client.post('/finance/expense/delete/999999', follow_redirects=True)
+        self.assertEqual(del_fake_exp.status_code, 200)
+
+        # 4. Zero/Empty month report generation does not raise ZeroDivisionError
+        empty_report = models.generate_monthly_report_data(uid, 1, 2010)
+        self.assertEqual(empty_report['health']['workouts_count'], 0)
+        self.assertEqual(empty_report['health']['total_calories'], 0)
+        self.assertEqual(empty_report['finance']['summary']['spent'], 0)
+        self.assertIsInstance(empty_report['lifescore'], dict)
+
+    # -------------------------------------------------------------
+    # 25. BMI Persistence & AJAX API Endpoint Tests
+    # -------------------------------------------------------------
+    def test_32_bmi_unlimited_persistence_and_ajax_api(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        # 1. Direct model test: calculate & save BMI
+        succ, msg, res = models.calculate_and_save_bmi(uid, 180.0, 75.0)
+        self.assertTrue(succ)
+        self.assertIn('bmi', res)
+        self.assertAlmostEqual(res['bmi'], 23.1, places=1)
+        self.assertEqual(res['category'], 'Normal')
+        self.assertIn('bmi_id', res)
+        self.assertIn('recorded_date', res)
+
+        # 2. Verify all BMI records are fetched without limit caps
+        history = models.get_user_bmi_history(uid)
+        self.assertIsInstance(history, list)
+        self.assertGreater(len(history), 0)
+
+        # 3. Test AJAX JSON Endpoint
+        ajax_resp = self.client.post('/health/bmi/calculate', data={
+            'height_cm': '175',
+            'weight_kg': '68'
+        }, headers={'X-Requested-With': 'XMLHttpRequest'})
+        self.assertEqual(ajax_resp.status_code, 200)
+        json_data = ajax_resp.get_json()
+        self.assertTrue(json_data['success'])
+        self.assertEqual(json_data['data']['category'], 'Normal')
+        self.assertGreaterEqual(len(models.get_user_bmi_history(uid)), 1)
+
+    # -------------------------------------------------------------
+    # 26. Habit Creation Date & Streak Logic Tests
+    # -------------------------------------------------------------
+    def test_33_habit_creation_date_and_streak_logic(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Add new habit
+        succ, msg = models.add_habit(uid, "Read Scientific Literature")
+        self.assertTrue(succ)
+
+        habits = models.get_user_habits(uid)
+        matching = [h for h in habits if h['habit_name'] == "Read Scientific Literature"]
+        self.assertTrue(len(matching) > 0)
+        habit = matching[0]
+
+        # Verify created_at is present
+        self.assertIn('created_at', habit)
+        self.assertTrue(len(str(habit['created_at'])) >= 10)
+
+        # 2. Complete habit today
+        c_succ, c_msg = models.toggle_habit_today(uid, habit['habit_id'])
+        self.assertTrue(c_succ)
+
+        # Verify streak incremented to 1
+        updated_habits = models.get_user_habits(uid)
+        updated_habit = [h for h in updated_habits if h['habit_id'] == habit['habit_id']][0]
+        self.assertEqual(updated_habit['streak_count'], 1)
+        self.assertTrue(updated_habit['done_today'])
+
+        # Cleanup
+        models.delete_habit(uid, habit['habit_id'])
+
+    # -------------------------------------------------------------
+    # 27. Security & Parameterized Query Injection Prevention Tests
+    # -------------------------------------------------------------
+    def test_34_sql_injection_and_input_sanitization(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Attempt SQL injection in Task creation
+        sqli_payload = "Normal Task'); DROP TABLE tasks; --"
+        dl = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+        succ, msg = models.create_task(uid, sqli_payload, "desc", "medium", dl)
+        self.assertTrue(succ)
+
+        # Verify tasks table still exists and data was stored safely as plain text
+        tasks = models.get_user_tasks(uid, 'all')
+        self.assertTrue(any(t['title'] == sqli_payload for t in tasks))
+
+        # Cleanup
+        for t in tasks:
+            if t['title'] == sqli_payload:
+                models.delete_task(uid, t['task_id'])
+
+        # 2. Attempt SQL injection in Expense description
+        exp_payload = "' OR 1=1 --"
+        log_succ, log_msg = models.log_expense(uid, 100.0, "Other", exp_payload, date.today().strftime('%Y-%m-%d'))
+        self.assertTrue(log_succ)
+
+        expenses = models.get_user_expenses(uid, limit=10)
+        matching_exp = [e for e in expenses if e['description'] == exp_payload]
+        self.assertTrue(len(matching_exp) > 0)
+        models.delete_expense(uid, matching_exp[0]['expense_id'])
+
+
 if __name__ == '__main__':
     unittest.main()
+
 
 

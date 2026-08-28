@@ -1448,6 +1448,18 @@ a {
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, var(--bg-card) 100%);
 }
 
+.ai-link {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
+}
+.ai-link:hover {
+  color: var(--primary-hover, #4338ca);
+  opacity: 0.85;
+}
+
 /* -------------------------------------------------------------
    GitHub-Style Activity Contribution Heatmap
    ------------------------------------------------------------- */

@@ -4,18 +4,18 @@
 {% block page_title %}Dashboard Overview{% endblock %}
 
 {% block content %}
-<!-- 1. AI Smart Daily Briefing Banner -->
-<div class="ai-briefing-card">
+<!-- 1. AI Executive Daily Briefing Banner -->
+<div class="ai-briefing-card" style="padding: 14px 18px; margin-bottom: 20px;">
   <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
     <i class="fa-solid fa-wand-magic-sparkles"></i>
   </div>
   <div style="flex: 1;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-      <h3 style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ ai_briefing.greeting }}</h3>
-      <span style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">AI Daily Briefing</span>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 6px;">
+      <h3 style="font-size: 14.5px; font-weight: 800; color: var(--text-main); margin: 0;">{{ ai_briefing.greeting }}</h3>
+      <span class="badge badge-primary" style="font-size: 10px; padding: 2px 7px;"><i class="fa-solid fa-bolt"></i> AI Daily Briefing</span>
     </div>
     <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin: 0;">
-      {{ ai_briefing.message }}
+      {{ ai_briefing.message | safe }}
     </p>
   </div>
 </div>
@@ -50,31 +50,6 @@
       <circle class="lifescore-svg-progress" id="lifescoreCircle" cx="50" cy="50" r="42" style="stroke: {{ lifescore.color }};"></circle>
     </svg>
     <div class="lifescore-num-center">{{ lifescore.score }}<span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">%</span></div>
-  </div>
-</div>
-
-<!-- 2. AI Spend Forecaster Banner -->
-<div class="ai-forecast-card {{ financial_projection.status }}">
-  <div style="display: flex; align-items: flex-start; gap: 12px;">
-    <div class="summary-icon-box" style="background: var(--bg-card); font-size: 16px; min-width: 36px; height: 36px;">
-      {% if financial_projection.status == 'danger' %}⚠️
-      {% elif financial_projection.status == 'warning' %}⚡
-      {% else %}🔮{% endif %}
-    </div>
-    <div style="flex: 1;">
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 2px;">
-        <strong style="font-size: 13.5px;">AI Spend Forecaster</strong>
-        <span class="badge {% if financial_projection.status == 'danger' %}badge-danger{% elif financial_projection.status == 'warning' %}badge-warning{% else %}badge-success{% endif %}">
-          Projected: ₹{{ "{:,.0f}".format(financial_projection.projected_spend) }}
-        </span>
-      </div>
-      <p style="font-size: 12.5px; margin-bottom: 6px; color: var(--text-main);">{{ financial_projection.message }}</p>
-      <div style="display: flex; gap: 16px; font-size: 11.5px; color: var(--text-muted); flex-wrap: wrap;">
-        <span>Daily Velocity: <strong>₹{{ "{:,.0f}".format(financial_projection.daily_avg) }}/day</strong></span>
-        <span>Days Remaining: <strong>{{ financial_projection.days_remaining }} days</strong></span>
-        <span>Safe Daily Target: <strong>₹{{ "{:,.0f}".format(financial_projection.safe_daily_spend) }}/day</strong></span>
-      </div>
-    </div>
   </div>
 </div>
 
