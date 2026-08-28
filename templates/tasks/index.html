@@ -93,6 +93,12 @@
     <option value="low">🟢 Low Priority</option>
   </select>
 
+  <select id="taskUrgencyFilter" class="filter-select">
+    <option value="all">⏰ All Timelines</option>
+    <option value="overdue">🚨 Overdue Only</option>
+    <option value="duesoon">⏳ Due Within 24h</option>
+  </select>
+
   <select id="taskRecurrenceFilter" class="filter-select">
     <option value="all">🔄 All Recurrence</option>
     <option value="none">One-off Only</option>
@@ -103,11 +109,14 @@
 
   <select id="taskSortSelect" class="sort-select">
     <option value="default">⚡ Sort: Default</option>
-    <option value="date-asc">⏳ Deadline (Nearest First)</option>
+    <option value="created-desc">🆕 Created (Newest First)</option>
+    <option value="created-asc">⏳ Created (Oldest First)</option>
+    <option value="date-asc">🚨 Deadline (Nearest First)</option>
     <option value="date-desc">⌛ Deadline (Farthest First)</option>
     <option value="priority-desc">🔴 Priority (High → Low)</option>
     <option value="priority-asc">🟢 Priority (Low → High)</option>
     <option value="title-asc">🔤 Title (A → Z)</option>
+    <option value="title-desc">🔤 Title (Z → A)</option>
   </select>
 </div>
 
@@ -121,7 +130,7 @@
       <span class="badge badge-secondary">{{ pending_tasks | length }}</span>
     </div>
     {% for task in pending_tasks %}
-    <div class="kanban-card" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
+    <div class="kanban-card" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}" data-created="{{ task.created_at or '' }}" data-overdue="{{ '1' if task.is_overdue else '0' }}" data-duesoon="{{ '1' if task.is_due_soon else '0' }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
@@ -163,7 +172,7 @@
       <span class="badge badge-secondary">{{ in_progress_tasks | length }}</span>
     </div>
     {% for task in in_progress_tasks %}
-    <div class="kanban-card" style="border-left: 3px solid #ea580c;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
+    <div class="kanban-card" style="border-left: 3px solid #ea580c;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}" data-created="{{ task.created_at or '' }}" data-overdue="{{ '1' if task.is_overdue else '0' }}" data-duesoon="{{ '1' if task.is_due_soon else '0' }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ task.priority }}">{{ task.priority }}</span>
@@ -201,7 +210,7 @@
       <span class="badge badge-secondary">{{ done_tasks | length }}</span>
     </div>
     {% for task in done_tasks %}
-    <div class="kanban-card" style="opacity: 0.75;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}">
+    <div class="kanban-card" style="opacity: 0.75;" data-title="{{ task.title | escape }}" data-priority="{{ task.priority }}" data-recurring="{{ task.recurring or 'none' }}" data-date="{{ task.deadline }}" data-created="{{ task.created_at or '' }}" data-overdue="{{ '1' if task.is_overdue else '0' }}" data-duesoon="{{ '1' if task.is_due_soon else '0' }}">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <h4 style="font-size: 14px; text-decoration: line-through; margin-bottom: 6px;">{{ task.title }}</h4>
         {% if task.recurring and task.recurring != 'none' %}
@@ -234,7 +243,7 @@
       </thead>
       <tbody id="taskTableBody">
         {% for t in tasks %}
-        <tr class="{% if t.status == 'done' %}task-item status-done{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}">
+        <tr class="{% if t.status == 'done' %}task-item status-done{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}" data-created="{{ t.created_at or '' }}" data-overdue="{{ '1' if t.is_overdue else '0' }}" data-duesoon="{{ '1' if t.is_due_soon else '0' }}">
           <td>
             <form action="{{ url_for('update_task_status_route', task_id=t.task_id) }}" method="POST" style="margin: 0;">
               {% if t.status == 'done' %}
@@ -309,7 +318,7 @@
   <!-- Smartphone Adaptive Task Cards -->
   <div class="mobile-card-list" id="taskCardList">
     {% for t in tasks %}
-    <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}">
+    <div class="mobile-data-card {% if t.status == 'done' %}opacity-75{% endif %}" data-title="{{ t.title | escape }}" data-priority="{{ t.priority }}" data-recurring="{{ t.recurring or 'none' }}" data-date="{{ t.deadline }}" data-created="{{ t.created_at or '' }}" data-overdue="{{ '1' if t.is_overdue else '0' }}" data-duesoon="{{ '1' if t.is_due_soon else '0' }}">
       <div class="mobile-card-header">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
           <span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span>
@@ -458,23 +467,11 @@
   document.addEventListener('DOMContentLoaded', function() {
     applyLiveFilter({
       searchInputId: 'taskSearchInput',
-      filterSelectId: 'taskPriorityFilter',
+      filterSelectIds: ['taskPriorityFilter', 'taskUrgencyFilter', 'taskRecurrenceFilter'],
       sortSelectId: 'taskSortSelect',
       tableBodyId: 'taskTableBody',
       cardListClass: '#taskCardList'
     });
-
-    const recFilter = document.getElementById('taskRecurrenceFilter');
-    if (recFilter) {
-      recFilter.addEventListener('change', function() {
-        const val = recFilter.value;
-        const rows = document.querySelectorAll('#taskTableBody tr, #taskCardList .mobile-data-card, .kanban-card');
-        rows.forEach(r => {
-          const match = (val === 'all' || r.dataset.recurring === val);
-          r.style.display = match ? '' : 'none';
-        });
-      });
-    }
   });
 </script>
 {% endblock %}

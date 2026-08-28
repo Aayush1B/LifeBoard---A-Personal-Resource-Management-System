@@ -157,10 +157,24 @@ class LifeBoardTestCase(unittest.TestCase):
         _, _, data_obese = models.calculate_and_save_bmi(uid, 170.0, 100.0)
         self.assertEqual(data_obese['category'], 'Obese')
 
-        # Test history limit (FR-20)
-        history = models.get_user_bmi_history(uid, limit=10)
+        # Test history retrieval
+        history = models.get_user_bmi_history(uid, limit=50)
         self.assertGreater(len(history), 0)
-        self.assertLessEqual(len(history), 10)
+
+        # Test delete BMI record
+        del_success, del_msg = models.delete_bmi_record(uid, history[0]['bmi_id'])
+        self.assertTrue(del_success)
+
+        # Test health route rendering
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        res = self.client.get('/health')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b'BMI History Log', res.data)
 
     # -------------------------------------------------------------
     # 4. Tasks & Schedule Module Tests (FR-21 to FR-28)
@@ -254,11 +268,30 @@ class LifeBoardTestCase(unittest.TestCase):
         uid = user['user_id']
         today = date.today()
 
+        # 1. Model data structure test
         report = models.generate_monthly_report_data(uid, today.month, today.year)
         self.assertIn('health', report)
         self.assertIn('tasks', report)
         self.assertIn('finance', report)
+        self.assertIn('lifescore', report)
+        self.assertIn('task_list', report['tasks'])
+        self.assertIn('workouts', report['health'])
+        self.assertIn('expenses', report['finance'])
         self.assertGreaterEqual(report['health']['workouts_count'], 0)
+
+        # 2. End-to-end HTTP template rendering test
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        response = self.client.get('/reports')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Monthly Performance Report', response.data)
+        self.assertIn(b'Health, Physical Activity & BMI Analysis', response.data)
+        self.assertIn(b'Monthly Task Roster', response.data)
+        self.assertIn(b'Personal Financial Report', response.data)
 
     # -------------------------------------------------------------
     # 7. Admin Control Panel & Audit Logs (FR-40 to FR-43)

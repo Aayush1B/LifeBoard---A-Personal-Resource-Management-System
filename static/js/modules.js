@@ -97,6 +97,7 @@ function applyLiveFilter(config) {
   const {
     searchInputId,
     filterSelectId,
+    filterSelectIds,
     sortSelectId,
     tableBodyId,
     cardListClass,
@@ -106,14 +107,44 @@ function applyLiveFilter(config) {
   } = config;
 
   const searchInput = document.getElementById(searchInputId);
-  const filterSelect = document.getElementById(filterSelectId);
   const sortSelect = document.getElementById(sortSelectId);
   const tableBody = document.getElementById(tableBodyId);
   const cardList = cardListClass ? document.querySelector(cardListClass) : null;
 
+  const filterSelects = [];
+  if (filterSelectId) {
+    const el = document.getElementById(filterSelectId);
+    if (el) filterSelects.push(el);
+  }
+  if (Array.isArray(filterSelectIds)) {
+    filterSelectIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !filterSelects.includes(el)) filterSelects.push(el);
+    });
+  }
+
+  function matchesAllFilters(el) {
+    for (const sel of filterSelects) {
+      const fVal = sel.value;
+      if (fVal === 'all') continue;
+
+      if (sel.id === 'taskPriorityFilter' && el.dataset.priority !== fVal) return false;
+      if (sel.id === 'taskRecurrenceFilter' && el.dataset.recurring !== fVal) return false;
+      if (sel.id === 'taskUrgencyFilter') {
+        if (fVal === 'overdue' && el.dataset.overdue !== '1') return false;
+        if (fVal === 'duesoon' && el.dataset.duesoon !== '1') return false;
+        if (fVal === 'normal' && (el.dataset.overdue === '1' || el.dataset.duesoon === '1')) return false;
+      }
+      if (sel.id === 'workoutActivityFilter' && el.dataset.activity !== fVal) return false;
+      if (sel.id === 'expenseCategoryFilter' && el.dataset.category !== fVal) return false;
+      if (sel.id === 'adminRoleFilter' && el.dataset.role !== fVal) return false;
+      if (sel.id === 'adminModuleFilter' && el.dataset.module !== fVal) return false;
+    }
+    return true;
+  }
+
   function executeFilter() {
     const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
-    const fVal = filterSelect ? filterSelect.value : 'all';
     const sVal = sortSelect ? sortSelect.value : 'default';
 
     // 1. Process Table Rows
@@ -122,15 +153,9 @@ function applyLiveFilter(config) {
       rows.forEach(row => {
         const text = row.textContent.toLowerCase();
         const matchesSearch = !q || text.includes(q);
-        const matchesFilter = !filterSelect || fVal === 'all' ||
-          (row.dataset.category && row.dataset.category === fVal) ||
-          (row.dataset.priority && row.dataset.priority === fVal) ||
-          (row.dataset.activity && row.dataset.activity === fVal) ||
-          (row.dataset.role && row.dataset.role === fVal) ||
-          (row.dataset.module && row.dataset.module === fVal) ||
-          (row.dataset.recurring && row.dataset.recurring === fVal);
+        const passesFilters = matchesAllFilters(row);
 
-        row.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+        row.style.display = (matchesSearch && passesFilters) ? '' : 'none';
       });
 
       // Sort rows
@@ -146,15 +171,9 @@ function applyLiveFilter(config) {
       cards.forEach(card => {
         const text = card.textContent.toLowerCase();
         const matchesSearch = !q || text.includes(q);
-        const matchesFilter = !filterSelect || fVal === 'all' ||
-          (card.dataset.category && card.dataset.category === fVal) ||
-          (card.dataset.priority && card.dataset.priority === fVal) ||
-          (card.dataset.activity && card.dataset.activity === fVal) ||
-          (card.dataset.role && card.dataset.role === fVal) ||
-          (card.dataset.module && card.dataset.module === fVal) ||
-          (card.dataset.recurring && card.dataset.recurring === fVal);
+        const passesFilters = matchesAllFilters(card);
 
-        card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+        card.style.display = (matchesSearch && passesFilters) ? '' : 'none';
       });
 
       // Sort cards
@@ -170,10 +189,8 @@ function applyLiveFilter(config) {
       kanbanCards.forEach(card => {
         const text = card.textContent.toLowerCase();
         const matchesSearch = !q || text.includes(q);
-        const matchesFilter = !filterSelect || fVal === 'all' ||
-          (card.dataset.priority && card.dataset.priority === fVal) ||
-          (card.dataset.recurring && card.dataset.recurring === fVal);
-        card.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+        const passesFilters = matchesAllFilters(card);
+        card.style.display = (matchesSearch && passesFilters) ? '' : 'none';
       });
     }
 
@@ -181,7 +198,11 @@ function applyLiveFilter(config) {
   }
 
   function compareItems(a, b, sortRule) {
-    if (sortRule === 'date-desc') {
+    if (sortRule === 'created-desc') {
+      return (b.dataset.created || '').localeCompare(a.dataset.created || '');
+    } else if (sortRule === 'created-asc') {
+      return (a.dataset.created || '').localeCompare(b.dataset.created || '');
+    } else if (sortRule === 'date-desc') {
       return (b.dataset.date || '').localeCompare(a.dataset.date || '');
     } else if (sortRule === 'date-asc') {
       return (a.dataset.date || '').localeCompare(b.dataset.date || '');
@@ -193,6 +214,10 @@ function applyLiveFilter(config) {
       const ta = (a.dataset.title || a.dataset.name || '').toLowerCase();
       const tb = (b.dataset.title || b.dataset.name || '').toLowerCase();
       return ta.localeCompare(tb);
+    } else if (sortRule === 'title-desc' || sortRule === 'name-desc') {
+      const ta = (a.dataset.title || a.dataset.name || '').toLowerCase();
+      const tb = (b.dataset.title || b.dataset.name || '').toLowerCase();
+      return tb.localeCompare(ta);
     } else if (sortRule === 'priority-desc') {
       const weights = { 'high': 3, 'medium': 2, 'low': 1 };
       return (weights[b.dataset.priority] || 0) - (weights[a.dataset.priority] || 0);
@@ -208,7 +233,7 @@ function applyLiveFilter(config) {
   }
 
   if (searchInput) searchInput.addEventListener('input', executeFilter);
-  if (filterSelect) filterSelect.addEventListener('change', executeFilter);
+  filterSelects.forEach(sel => sel.addEventListener('change', executeFilter));
   if (sortSelect) sortSelect.addEventListener('change', executeFilter);
 }
 

@@ -614,6 +614,33 @@ a {
   background-color: var(--bg-app);
 }
 
+/* Custom Sleek Ultra-Thin Scrollbar for BMI History Table */
+.bmi-history-scroll {
+  max-height: 185px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.bmi-history-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bmi-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bmi-history-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+}
+
+.bmi-history-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary);
+}
+
 /* Mobile-First Adaptive Card Container (Alternative to wide tables on phones) */
 .desktop-only-table {
   display: block;
@@ -1641,6 +1668,242 @@ a {
   background-color: #0f172a;
   border-color: #334155;
   color: #f8fafc;
+}
+
+/* -------------------------------------------------------------
+   Comprehensive Mobile & Tablet Responsiveness System
+   ------------------------------------------------------------- */
+@media (max-width: 991px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-2-1 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  .page-content {
+    padding: 14px 12px 84px 12px !important;
+  }
+  .top-header {
+    padding: 10px 14px;
+  }
+  .page-title-group h1 {
+    font-size: 16px;
+  }
+  .page-subtitle {
+    display: none;
+  }
+  .btn-voice-header span,
+  .btn-quick-add span {
+    display: none;
+  }
+  .btn-voice-header,
+  .btn-quick-add {
+    padding: 8px 10px;
+  }
+
+  .grid-4 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .grid-2-1 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Filter & Sort Toolbars */
+  .filter-toolbar {
+    padding: 10px;
+    gap: 8px;
+  }
+  .filter-toolbar .search-box {
+    width: 100%;
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+  .filter-toolbar .filter-select,
+  .filter-toolbar .sort-select {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 130px;
+    font-size: 12px;
+  }
+
+  /* Kanban Board Swipe */
+  .kanban-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kanban-col {
+    min-width: 270px;
+    max-width: 85vw;
+    flex: 0 0 85vw;
+    scroll-snap-align: start;
+  }
+
+  /* Habit items */
+  .habit-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .habit-left {
+    gap: 8px;
+  }
+  .habit-name {
+    font-size: 13px;
+  }
+
+  /* Mobile Notification Center Sheet (Perfect for iPhone 16 Pro Max & all mobile devices) */
+  .notification-dropdown {
+    position: fixed !important;
+    top: 58px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35) !important;
+    z-index: 1100 !important;
+  }
+  .notification-list {
+    max-height: min(340px, 60vh) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-toolbar .filter-select,
+  .filter-toolbar .sort-select {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 100%;
+  }
+  .card {
+    padding: 14px;
+    border-radius: var(--radius-md);
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+/* -------------------------------------------------------------
+   Print-to-PDF Formatting Engine (@media print)
+   ------------------------------------------------------------- */
+@media print {
+  body, html {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+  }
+
+  .sidebar,
+  .top-header,
+  .mobile-bottom-nav,
+  .sidebar-backdrop,
+  .cmd-palette-overlay,
+  .modal-overlay,
+  .no-print,
+  .btn-print,
+  .flash-container,
+  .theme-toggle-btn {
+    display: none !important;
+  }
+
+  .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .page-content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 18px !important;
+    padding: 16px !important;
+  }
+
+  .card-title, h2, h3, h4 {
+    color: #0f172a !important;
+  }
+
+  .table-custom {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    font-size: 10pt !important;
+  }
+
+  .table-custom th {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+  }
+
+  .table-custom td {
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+    padding: 6px 8px !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .badge {
+    border: 1px solid #94a3b8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .progress-bar-container {
+    border: 1px solid #94a3b8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 

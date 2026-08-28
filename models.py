@@ -156,15 +156,22 @@ def log_workout(user_id: int, activity_type: str, duration_mins: int, calories: 
     finally:
         conn.close()
 
-def get_user_workouts(user_id: int, limit: int = 50):
+def get_user_workouts(user_id: int, limit: int = None):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    SELECT * FROM workout_log
-    WHERE user_id = ?
-    ORDER BY log_date DESC, created_at DESC
-    LIMIT ?
-    """, (user_id, limit))
+    if limit:
+        cursor.execute("""
+        SELECT * FROM workout_log
+        WHERE user_id = ?
+        ORDER BY log_date DESC, created_at DESC
+        LIMIT ?
+        """, (user_id, limit))
+    else:
+        cursor.execute("""
+        SELECT * FROM workout_log
+        WHERE user_id = ?
+        ORDER BY log_date DESC, created_at DESC
+        """, (user_id,))
     workouts = cursor.fetchall()
     conn.close()
     return workouts
@@ -437,14 +444,17 @@ def calculate_and_save_bmi(user_id: int, height_cm: float, weight_kg: float):
         INSERT INTO bmi_records (user_id, height_cm, weight_kg, bmi_value, category)
         VALUES (?, ?, ?, ?, ?)
         """, (user_id, height_cm, weight_kg, bmi_value, category))
+        new_id = cursor.lastrowid
         conn.commit()
         log_audit(user_id, "", 'BMI_CALCULATED', 'Health', f"Calculated BMI: {bmi_value} ({category})")
         return True, "BMI recorded successfully.", {
+            'bmi_id': new_id,
             'bmi': bmi_value,
             'category': category,
             'color': category_color,
             'height': height_cm,
-            'weight': weight_kg
+            'weight': weight_kg,
+            'recorded_date': date.today().strftime('%Y-%m-%d')
         }
     except Exception as e:
         conn.rollback()
@@ -452,18 +462,45 @@ def calculate_and_save_bmi(user_id: int, height_cm: float, weight_kg: float):
     finally:
         conn.close()
 
-def get_user_bmi_history(user_id: int, limit: int = 10):
+def get_user_bmi_history(user_id: int, limit: int = None):
+    """
+    Returns historical BMI calculations for a user, ordered by most recent.
+    """
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-    SELECT * FROM bmi_records
-    WHERE user_id = ?
-    ORDER BY recorded_date DESC
-    LIMIT ?
-    """, (user_id, limit))
+    if limit:
+        cursor.execute("""
+        SELECT * FROM bmi_records
+        WHERE user_id = ?
+        ORDER BY recorded_date DESC
+        LIMIT ?
+        """, (user_id, limit))
+    else:
+        cursor.execute("""
+        SELECT * FROM bmi_records
+        WHERE user_id = ?
+        ORDER BY recorded_date DESC
+        """, (user_id,))
     records = cursor.fetchall()
     conn.close()
     return records
+
+def delete_bmi_record(user_id: int, bmi_id: int):
+    """
+    Deletes a BMI history entry with user ownership check.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM bmi_records WHERE bmi_id = ? AND user_id = ?", (bmi_id, user_id))
+        conn.commit()
+        log_audit(user_id, "", 'BMI_DELETED', 'Health', f"Deleted BMI record #{bmi_id}")
+        return True, "BMI record deleted."
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
 
 
 # ==========================================
@@ -1087,6 +1124,14 @@ def generate_monthly_report_data(user_id: int, month: int = None, year: int = No
     """, (user_id, month_str))
     top_act = cursor.fetchone()
 
+    # Fetch individual workout logs for the month
+    cursor.execute("""
+    SELECT * FROM workout_log
+    WHERE user_id = ? AND log_date LIKE ?
+    ORDER BY log_date DESC
+    """, (user_id, month_str))
+    workout_rows = cursor.fetchall()
+
     # Habit stats for the month
     cursor.execute("""
     SELECT h.habit_name, COUNT(hl.log_id) as completions, h.streak_count
@@ -1109,6 +1154,7 @@ def generate_monthly_report_data(user_id: int, month: int = None, year: int = No
     cursor.execute("""
     SELECT * FROM tasks
     WHERE user_id = ? AND (created_at LIKE ? OR deadline LIKE ?)
+    ORDER BY deadline ASC
     """, (user_id, month_str, month_str))
     task_rows = cursor.fetchall()
     total_tasks = len(task_rows)
@@ -1129,17 +1175,30 @@ def generate_monthly_report_data(user_id: int, month: int = None, year: int = No
     """, (user_id, month_str))
     fin_categories = cursor.fetchall()
 
+    # Fetch individual expense records for the month
+    cursor.execute("""
+    SELECT * FROM expense_log
+    WHERE user_id = ? AND expense_date LIKE ?
+    ORDER BY expense_date DESC
+    """, (user_id, month_str))
+    expense_rows = cursor.fetchall()
+
     conn.close()
+
+    # Calculate LifeScore snapshot
+    lifescore_data = calculate_lifescore(user_id)
 
     return {
         'month_name': month_name,
         'month': month,
         'year': year,
+        'lifescore': lifescore_data,
         'health': {
             'workouts_count': health_stat['workouts_count'],
             'total_calories': health_stat['total_cals'],
             'total_duration_mins': health_stat['total_mins'],
             'top_activity': top_act['activity_type'] if top_act else 'None',
+            'workouts': workout_rows,
             'habits': habit_rows,
             'bmi_records': bmi_rows
         },
@@ -1150,11 +1209,12 @@ def generate_monthly_report_data(user_id: int, month: int = None, year: int = No
             'in_progress': in_progress_tasks,
             'high_priority': high_tasks,
             'completion_rate': task_comp_rate,
-            'items': task_rows
+            'task_list': task_rows
         },
         'finance': {
             'summary': fin_summary,
-            'categories': fin_categories
+            'categories': fin_categories,
+            'expenses': expense_rows
         }
     }
 

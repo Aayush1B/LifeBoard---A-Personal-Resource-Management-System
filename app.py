@@ -278,10 +278,10 @@ def health():
     """
     user_id = session['user_id']
     today = date.today()
-    workouts = models.get_user_workouts(user_id, limit=50)
+    workouts = models.get_user_workouts(user_id)
     weekly_stats = models.get_weekly_calories(user_id)
     habits = models.get_user_habits(user_id)
-    bmi_history = models.get_user_bmi_history(user_id, limit=10)
+    bmi_history = models.get_user_bmi_history(user_id)
     workout_chart = models.get_7day_workout_chart_data(user_id)
 
     return render_template('health/index.html',
@@ -408,6 +408,20 @@ def calculate_bmi():
 
     if success:
         flash(f"BMI calculated: {data['bmi']} ({data['category']})", 'success')
+    else:
+        flash(msg, 'danger')
+    return redirect(url_for('health'))
+
+@app.route('/health/bmi/delete/<int:bmi_id>', methods=['POST'])
+@login_required
+def delete_bmi(bmi_id):
+    """
+    Deletes a BMI calculation entry.
+    """
+    user_id = session['user_id']
+    success, msg = models.delete_bmi_record(user_id, bmi_id)
+    if success:
+        flash(msg, 'success')
     else:
         flash(msg, 'danger')
     return redirect(url_for('health'))

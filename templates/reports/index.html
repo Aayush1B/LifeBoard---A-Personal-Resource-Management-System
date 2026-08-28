@@ -46,80 +46,174 @@
 
   <!-- Report Header (Clean for print) -->
   <div class="card" style="border-left: 4px solid var(--primary);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
       <div>
-        <h2 style="font-size: 22px; margin-bottom: 4px;">LifeBoard — Monthly Performance Report</h2>
+        <h2 style="font-size: 22px; margin-bottom: 4px; color: var(--text-main);">LifeBoard — Monthly Performance Report</h2>
         <div style="font-size: 13px; color: var(--text-muted);">
           User: <strong>{{ session.get('name') }}</strong> ({{ session.get('email') }}) • Reporting Period: <strong>{{ report.month_name }}</strong>
         </div>
       </div>
-      <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
-        Generated on: {{ today_date }}
+      <div style="display: flex; align-items: center; gap: 14px;">
+        {% if report.lifescore %}
+        <div style="background: var(--bg-app); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 6px 14px; text-align: center;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">LifeScore Rating</div>
+          <div style="font-size: 18px; font-weight: 800; color: {{ report.lifescore.color }};">{{ report.lifescore.score }}/100</div>
+        </div>
+        {% endif %}
+        <div style="text-align: right; font-size: 12px; color: var(--text-muted);">
+          Generated on: <strong>{{ today_date }}</strong>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- SECTION 1: Health & Fitness Report -->
+  <!-- SECTION 1: Health, Physical Activity & BMI Analysis -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
-        <i class="fa-solid fa-heart-pulse" style="color: var(--primary);"></i>
-        <span>1. Health & Physical Activity Analysis</span>
+        <i class="fa-solid fa-heart-pulse" style="color: #ef4444;"></i>
+        <span>1. Health, Physical Activity & BMI Analysis</span>
       </h3>
-      <span class="badge badge-primary">{{ report.health.workouts_count }} Workouts</span>
+      <span class="badge badge-primary">{{ report.health.workouts_count }} Workouts Logged</span>
     </div>
 
+    <!-- Health Summary Grid -->
     <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Calories Burned</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.total_calories }} kcal</div>
+        <div style="font-size: 20px; font-weight: 800; color: #dc2626;">{{ report.health.total_calories }} kcal</div>
       </div>
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Active Time</div>
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Active Duration</div>
         <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.total_duration_mins }} mins</div>
       </div>
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Primary Activity</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--primary);">{{ report.health.top_activity }}</div>
+        <div style="font-size: 20px; font-weight: 800; color: #0284c7;">{{ report.health.top_activity }}</div>
       </div>
     </div>
 
-    <!-- Habit Streaks in Month -->
-    <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-main);">Habit Adherence in {{ report.month_name }}</h4>
-    {% if report.health.habits %}
-    <table class="table-custom" style="margin-bottom: 14px;">
-      <thead>
-        <tr>
-          <th>Habit Name</th>
-          <th>Completions this Month</th>
-          <th>Current Streak</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for h in report.health.habits %}
-        <tr>
-          <td style="font-weight: 600;">{{ h.habit_name }}</td>
-          <td>{{ h.completions }} days</td>
-          <td><span class="badge badge-success">{{ h.streak_count }} days streak</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <!-- 1A. Workout Session History Table -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-dumbbell" style="color: var(--primary); margin-right: 6px;"></i>Workout Sessions ({{ report.month_name }})
+    </h4>
+    {% if report.health.workouts %}
+    <div class="table-responsive" style="margin-bottom: 18px;">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Activity</th>
+            <th>Duration</th>
+            <th>Calories Burned</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in report.health.workouts %}
+          <tr>
+            <td style="font-weight: 600; white-space: nowrap;">{{ w.log_date }}</td>
+            <td>
+              <span class="badge badge-primary">
+                {% if w.activity_type == 'Gym' %}🏋️ Gym
+                {% elif w.activity_type == 'Running' %}🏃 Running
+                {% elif w.activity_type == 'Cycling' %}🚴 Cycling
+                {% elif w.activity_type == 'Swimming' %}🏊 Swimming
+                {% elif w.activity_type == 'Yoga' %}🧘 Yoga
+                {% else %}⚡ {{ w.activity_type }}
+                {% endif %}
+              </span>
+            </td>
+            <td>{{ w.duration_mins }} mins</td>
+            <td style="font-weight: 700; color: #dc2626;">{{ w.calories }} kcal</td>
+            <td style="color: var(--text-muted);">{{ w.notes or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-    <p style="font-size: 13px; color: var(--text-muted);">No habit logs recorded in this period.</p>
+    <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">No workout sessions logged in this period.</p>
+    {% endif %}
+
+    <!-- 1B. Habit Streaks in Month -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-fire" style="color: #ef4444; margin-right: 6px;"></i>Daily Habit Adherence & Streaks
+    </h4>
+    {% if report.health.habits %}
+    <div class="table-responsive" style="margin-bottom: 18px;">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Habit Name</th>
+            <th>Completions this Month</th>
+            <th>Current Streak</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in report.health.habits %}
+          <tr>
+            <td style="font-weight: 600;">{{ h.habit_name }}</td>
+            <td>{{ h.completions }} days</td>
+            <td><span class="badge badge-success">{{ h.streak_count }} days streak</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">No habit logs recorded in this period.</p>
+    {% endif %}
+
+    <!-- 1C. BMI Health & Body Composition Table -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-weight-scale" style="color: #0ea5e9; margin-right: 6px;"></i>BMI Health & Body Composition Records
+    </h4>
+    {% if report.health.bmi_records %}
+    <div class="table-responsive">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Recorded Date</th>
+            <th>Height (cm)</th>
+            <th>Weight (kg)</th>
+            <th>BMI Score</th>
+            <th>Health Classification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in report.health.bmi_records %}
+          <tr>
+            <td style="font-weight: 600; white-space: nowrap;">{{ b.recorded_date[:10] }}</td>
+            <td>{{ b.height_cm }} cm</td>
+            <td>{{ b.weight_kg }} kg</td>
+            <td style="font-weight: 800;">{{ b.bmi_value }}</td>
+            <td>
+              <span class="badge {% if b.category == 'Normal' %}badge-success{% elif b.category == 'Obese' %}badge-danger{% else %}badge-warning{% endif %}">
+                {{ b.category }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size: 12.5px; color: var(--text-muted);">No BMI calculations recorded in this period.</p>
     {% endif %}
   </div>
 
-  <!-- SECTION 2: Task & Schedule Report -->
+  <!-- SECTION 2: Tasks & Schedule Management Report -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
-        <i class="fa-solid fa-list-check" style="color: var(--warning);"></i>
+        <i class="fa-solid fa-list-check" style="color: #6366f1;"></i>
         <span>2. Tasks & Deadline Schedule Breakdown</span>
       </h3>
       <span class="badge badge-warning">{{ report.tasks.completion_rate }}% Completion Rate</span>
     </div>
 
+    <!-- Task Summary Grid -->
     <div class="grid-4" style="margin-top: 14px; margin-bottom: 18px;">
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Tasks</div>
@@ -138,9 +232,56 @@
         <div style="font-size: 20px; font-weight: 800; color: var(--danger);">{{ report.tasks.high_priority }}</div>
       </div>
     </div>
+
+    <!-- Task Detailed Roster Table -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-table-list" style="color: var(--primary); margin-right: 6px;"></i>Monthly Task Roster
+    </h4>
+    {% if report.tasks.task_list %}
+    <div class="table-responsive">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Task Title</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Recurrence</th>
+            <th>Deadline</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in report.tasks.task_list %}
+          <tr>
+            <td style="font-weight: 600;">{{ t.title }}</td>
+            <td>
+              <span class="badge {% if t.priority == 'high' %}badge-danger{% elif t.priority == 'medium' %}badge-warning{% else %}badge-secondary{% endif %}">
+                {{ t.priority | upper }}
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if t.status == 'done' %}badge-success{% elif t.status == 'in_progress' %}badge-primary{% else %}badge-secondary{% endif %}">
+                {{ t.status | replace('_', ' ') | upper }}
+              </span>
+            </td>
+            <td style="color: var(--text-muted); font-size: 11.5px;">
+              {% if t.recurring and t.recurring != 'none' %}
+                🔄 {{ t.recurring | capitalize }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td style="color: var(--text-muted); white-space: nowrap;">{{ t.deadline[:16] if t.deadline else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size: 12.5px; color: var(--text-muted);">No task items scheduled or active in this period.</p>
+    {% endif %}
   </div>
 
-  <!-- SECTION 3: Financial Summary & Budget Report -->
+  <!-- SECTION 3: Personal Finance & Spending Report -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
       <h3 class="card-title">
@@ -148,12 +289,13 @@
         <span>3. Personal Financial Report & Budget Adherence</span>
       </h3>
       {% if report.finance.summary.is_over_budget %}
-        <span class="badge badge-danger">Over Budget</span>
+        <span class="badge badge-danger">Over Budget (Deficit)</span>
       {% else %}
-        <span class="badge badge-success">Within Budget</span>
+        <span class="badge badge-success">Within Budget (Surplus)</span>
       {% endif %}
     </div>
 
+    <!-- Financial Summary Grid -->
     <div class="grid-3" style="margin-top: 14px; margin-bottom: 18px;">
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Monthly Budget</div>
@@ -161,49 +303,102 @@
       </div>
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="font-size: 11px; font-weight: 700; color: var(--danger); text-transform: uppercase;">Total Expenses</div>
-        <div style="font-size: 20px; font-weight: 800; color: var(--danger);">₹{{ "{:,.2f}".format(report.finance.summary.spent) }}</div>
+        <div style="font-size: 20px; font-weight: 800; color: #b91c1c;">₹{{ "{:,.2f}".format(report.finance.summary.spent) }}</div>
       </div>
       <div style="background: var(--bg-app); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-        <div style="font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase;">Net Savings / Deficit</div>
-        <div style="font-size: 20px; font-weight: 800; color: {% if report.finance.summary.is_over_budget %}var(--danger){% else %}var(--success){% endif %};">
+        <div style="font-size: 11px; font-weight: 700; color: var(--success); text-transform: uppercase;">Net Savings / Buffer</div>
+        <div style="font-size: 20px; font-weight: 800; color: {% if report.finance.summary.is_over_budget %}#dc2626{% else %}#15803d{% endif %};">
           ₹{{ "{:,.2f}".format(report.finance.summary.savings) }}
         </div>
       </div>
     </div>
 
-    <h4 style="font-size: 14px; margin-bottom: 10px;">Category Breakdown</h4>
+    <!-- Category Spending Breakdown Table -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-chart-pie" style="color: var(--primary); margin-right: 6px;"></i>Spending by Category
+    </h4>
     {% if report.finance.categories %}
-    <table class="table-custom">
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Transactions</th>
-          <th>Total Amount (₹)</th>
-          <th>% of Spending</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cat in report.finance.categories %}
-        {% set cat_pct = (cat.total / report.finance.summary.spent * 100) | round(1) if report.finance.summary.spent > 0 else 0 %}
-        <tr>
-          <td style="font-weight: 600;">{{ cat.category }}</td>
-          <td>{{ cat.count }}</td>
-          <td style="font-weight: 700;">₹{{ "{:,.2f}".format(cat.total) }}</td>
-          <td>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span>{{ cat_pct }}%</span>
-              <div class="progress-bar-container" style="width: 80px; height: 6px;">
-                <div class="progress-bar-fill primary" style="width: {{ cat_pct }}%;"></div>
+    <div class="table-responsive" style="margin-bottom: 18px;">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Transactions</th>
+            <th>Total Amount (₹)</th>
+            <th>% of Total Spending</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in report.finance.categories %}
+          {% set cat_pct = (cat.total / report.finance.summary.spent * 100) | round(1) if report.finance.summary.spent > 0 else 0 %}
+          <tr>
+            <td style="font-weight: 600;">
+              {% if cat.category == 'Food' %}🍔 Food & Dining
+              {% elif cat.category == 'Transport' %}🚗 Transport
+              {% elif cat.category == 'Health' %}💊 Health & Medical
+              {% elif cat.category == 'Entertainment' %}🎬 Entertainment
+              {% else %}📦 Other
+              {% endif %}
+            </td>
+            <td>{{ cat.count }}</td>
+            <td style="font-weight: 700;">₹{{ "{:,.2f}".format(cat.total) }}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 600;">{{ cat_pct }}%</span>
+                <div class="progress-bar-container" style="width: 80px; height: 6px;">
+                  <div class="progress-bar-fill primary" style="width: {{ cat_pct }}%;"></div>
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-    <p style="font-size: 13px; color: var(--text-muted);">No expenses recorded in this period.</p>
+    <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">No expense category records in this period.</p>
     {% endif %}
+
+    <!-- Expense Transactions Ledger Table -->
+    <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-main); font-weight: 700;">
+      <i class="fa-solid fa-receipt" style="color: #f59e0b; margin-right: 6px;"></i>Expense Ledger ({{ report.month_name }})
+    </h4>
+    {% if report.finance.expenses %}
+    <div class="table-responsive">
+      <table class="table-custom" style="font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Description / Note</th>
+            <th style="text-align: right;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in report.finance.expenses %}
+          <tr>
+            <td style="font-weight: 600; white-space: nowrap;">{{ exp.expense_date }}</td>
+            <td>
+              <span class="badge {% if exp.category == 'Food' %}badge-warning{% elif exp.category == 'Transport' %}badge-secondary{% elif exp.category == 'Health' %}badge-success{% else %}badge-primary{% endif %}">
+                {{ exp.category }}
+              </span>
+            </td>
+            <td style="color: var(--text-muted);">{{ exp.description or '—' }}</td>
+            <td style="font-weight: 800; text-align: right; color: var(--text-main);">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="font-size: 12.5px; color: var(--text-muted);">No expense ledger records in this period.</p>
+    {% endif %}
+  </div>
+
+  <!-- Report Official Footer (for Academic Review & PDF Generation) -->
+  <div class="card" style="font-size: 12px; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color);">
+    <div>Generated by <strong>LifeBoard (Personal Resource Management System)</strong> v2.0</div>
+    <div style="margin-top: 4px;">BCSP-064 Capstone Project • Automated Multi-Domain Aggregation Report</div>
   </div>
 
 </div>
