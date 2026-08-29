@@ -746,7 +746,8 @@ def profile():
     habits = models.get_user_habits(user_id)
     max_streak = max([h['streak_count'] for h in habits], default=0)
 
-    # Achievements & Activity Heatmap
+    # Executive Analytics & Activity Heatmap
+    executive_stats = models.get_user_executive_stats(user_id)
     achievements = models.get_user_achievements(user_id)
     heatmap_data = models.get_activity_heatmap_data(user_id)
 
@@ -758,6 +759,7 @@ def profile():
                            total_lifetime_spent=total_lifetime_spent,
                            max_streak=max_streak,
                            achievements=achievements,
+                           executive_stats=executive_stats,
                            heatmap_data=heatmap_data)
 
 

@@ -196,19 +196,13 @@
             <i class="fa-solid fa-moon theme-toggle-icon" id="themeToggleIcon"></i>
           </button>
 
-          <!-- Voice Assistant Button -->
-          <button class="btn-voice-header" onclick="startVoiceAssistant()" title="AI Voice Command Assistant">
-            <i class="fa-solid fa-microphone"></i>
-            <span class="desktop-only-text">Voice Log</span>
-          </button>
-
           <!-- Quick Log Modal Button -->
-          <button class="btn-quick-add" onclick="openModal('quickActionModal')">
+          <button class="btn-quick-add" onclick="openModal('quickActionModal')" title="Quick Create Action">
             <i class="fa-solid fa-plus"></i>
             <span>Quick Log</span>
           </button>
 
-          <a href="{{ url_for('profile') }}" class="btn-icon desktop-only-btn" title="My Profile">
+          <a href="{{ url_for('profile') }}" class="btn-icon" title="My Profile (You)">
             <i class="fa-solid fa-circle-user" style="font-size: 20px;"></i>
           </a>
           <a href="{{ url_for('logout') }}" class="btn-icon danger desktop-only-btn" title="Sign out">
@@ -288,19 +282,27 @@
       <i class="fa-solid fa-heart-pulse"></i>
       <span>Health</span>
     </a>
+    <a href="{{ url_for('tasks') }}" class="mobile-nav-link {% if request.path.startswith('/tasks') %}active{% endif %}">
+      <i class="fa-solid fa-list-check"></i>
+      <span>Tasks</span>
+    </a>
 
     <!-- Center Floating Voice Assistant Button -->
     <button class="mobile-nav-voice-btn" onclick="startVoiceAssistant()" aria-label="Voice Command Assistant" title="Tap to Speak">
       <i class="fa-solid fa-microphone"></i>
     </button>
 
-    <a href="{{ url_for('tasks') }}" class="mobile-nav-link {% if request.path.startswith('/tasks') %}active{% endif %}">
-      <i class="fa-solid fa-list-check"></i>
-      <span>Tasks</span>
+    <a href="{{ url_for('finance') }}" class="mobile-nav-link {% if request.path.startswith('/finance') %}active{% endif %}">
+      <i class="fa-solid fa-wallet"></i>
+      <span>Finance</span>
     </a>
     <a href="{{ url_for('calendar_view') }}" class="mobile-nav-link {% if request.path.startswith('/calendar') %}active{% endif %}">
       <i class="fa-regular fa-calendar-days"></i>
       <span>Calendar</span>
+    </a>
+    <a href="{{ url_for('profile') }}" class="mobile-nav-link {% if request.path == '/profile' %}active{% endif %}">
+      <i class="fa-solid fa-user"></i>
+      <span>You</span>
     </a>
   </nav>
 

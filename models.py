@@ -1887,6 +1887,156 @@ def get_user_achievements(user_id: int):
     }
 
 
+def get_user_executive_stats(user_id: int):
+    """
+    Computes comprehensive lifetime productivity, consistency, and reliability analytics (Option 2).
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # 1. Health & Fitness lifetime
+    cursor.execute("""
+    SELECT COUNT(*) as count, 
+           COALESCE(SUM(calories), 0) as total_cals, 
+           COALESCE(SUM(duration_mins), 0) as total_mins 
+    FROM workout_log WHERE user_id = ?
+    """, (user_id,))
+    w_row = cursor.fetchone()
+    workout_count = w_row['count']
+    total_cals = int(w_row['total_cals'])
+    total_hours = round(float(w_row['total_mins']) / 60.0, 1)
+
+    cursor.execute("""
+    SELECT activity_type, COUNT(*) as cnt 
+    FROM workout_log 
+    WHERE user_id = ? 
+    GROUP BY activity_type 
+    ORDER BY cnt DESC LIMIT 1
+    """, (user_id,))
+    top_act_row = cursor.fetchone()
+    top_activity = top_act_row['activity_type'] if top_act_row else 'General Fitness'
+
+    cursor.execute("SELECT COUNT(*) as cnt FROM bmi_records WHERE user_id = ?", (user_id,))
+    bmi_logs_count = cursor.fetchone()['cnt']
+
+    # 2. Task Velocity & Completion
+    cursor.execute("""
+    SELECT COUNT(*) as total,
+           SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done,
+           SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+           SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress
+    FROM tasks WHERE user_id = ?
+    """, (user_id,))
+    t_row = cursor.fetchone()
+    total_tasks = t_row['total'] or 0
+    done_tasks = t_row['done'] or 0
+    pending_tasks = t_row['pending'] or 0
+    in_progress_tasks = t_row['in_progress'] or 0
+    task_comp_rate = round((done_tasks / total_tasks * 100.0), 1) if total_tasks > 0 else 100.0
+
+    # Overdue tasks
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    cursor.execute("""
+    SELECT COUNT(*) as cnt FROM tasks 
+    WHERE user_id = ? AND status != 'done' AND deadline < ?
+    """, (user_id, now_str))
+    overdue_tasks = cursor.fetchone()['cnt']
+
+    # 3. Habit Consistency & Streaks
+    cursor.execute("SELECT COUNT(*) as cnt, COALESCE(MAX(streak_count), 0) as max_s FROM habit_tracker WHERE user_id = ?", (user_id,))
+    h_row = cursor.fetchone()
+    total_habits = h_row['cnt']
+    max_streak = h_row['max_s']
+
+    cursor.execute("SELECT COUNT(*) as cnt FROM habit_logs WHERE user_id = ?", (user_id,))
+    habit_checkins = cursor.fetchone()['cnt']
+
+    # Habit consistency rate
+    habit_consistency_rate = min(100, int((habit_checkins / max(1, total_habits * 7)) * 100)) if total_habits > 0 else 100
+
+    # 4. Financial Governance & Discipline
+    cursor.execute("""
+    SELECT COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total_spent 
+    FROM expense_log WHERE user_id = ?
+    """, (user_id,))
+    fin_row = cursor.fetchone()
+    expense_count = fin_row['cnt']
+    total_spent = float(fin_row['total_spent'])
+
+    # Budget discipline
+    today = date.today()
+    cursor.execute("SELECT monthly_limit FROM budget WHERE user_id = ? AND month = ? AND year = ?", (user_id, today.month, today.year))
+    b_row = cursor.fetchone()
+    monthly_budget = float(b_row['monthly_limit']) if b_row else 25000.0
+    budget_adherence = max(0, min(100, int(((monthly_budget - min(monthly_budget, total_spent)) / max(1, monthly_budget)) * 100)))
+
+    # 5. Voice AI & Audit
+    cursor.execute("SELECT COUNT(*) as cnt FROM audit_log WHERE user_id = ? AND action = 'VOICE_COMMAND'", (user_id,))
+    voice_count = cursor.fetchone()['cnt']
+
+    # Total recorded data points across all modules (Workouts + Tasks + Habits Defined + Habit Check-ins + Expenses + BMI + Voice)
+    total_data_points = workout_count + total_tasks + total_habits + habit_checkins + expense_count + bmi_logs_count + voice_count
+
+    conn.close()
+
+    # Calculate LifeScore snapshot
+    lifescore = calculate_lifescore(user_id)
+    score_val = lifescore['score']
+
+    if score_val >= 85:
+        grade = "A+ (Elite Executive)"
+        grade_badge = "success"
+        grade_desc = "Outstanding discipline, optimal task velocity, and proactive health maintenance."
+    elif score_val >= 70:
+        grade = "A (High Performer)"
+        grade_badge = "primary"
+        grade_desc = "Strong consistency across core pillars with steady habit adherence."
+    elif score_val >= 50:
+        grade = "B+ (Consistent & Growing)"
+        grade_badge = "warning"
+        grade_desc = "Solid baseline performance with high potential for habit optimization."
+    else:
+        grade = "B (Developing Rhythm)"
+        grade_badge = "secondary"
+        grade_desc = "Building momentum and establishing daily routines."
+
+    return {
+        'grade': grade,
+        'grade_badge': grade_badge,
+        'grade_desc': grade_desc,
+        'lifescore': lifescore,
+        'total_data_points': total_data_points,
+        'health': {
+            'workout_count': workout_count,
+            'total_calories': total_cals,
+            'total_hours': total_hours,
+            'top_activity': top_activity,
+            'bmi_logs_count': bmi_logs_count
+        },
+        'tasks': {
+            'total': total_tasks,
+            'done': done_tasks,
+            'pending': pending_tasks,
+            'in_progress': in_progress_tasks,
+            'overdue': overdue_tasks,
+            'completion_rate': task_comp_rate
+        },
+        'habits': {
+            'total_habits': total_habits,
+            'max_streak': max_streak,
+            'total_checkins': habit_checkins,
+            'consistency_rate': habit_consistency_rate
+        },
+        'finance': {
+            'expense_count': expense_count,
+            'total_spent': total_spent,
+            'monthly_budget': monthly_budget,
+            'budget_adherence': budget_adherence
+        },
+        'voice_count': voice_count
+    }
+
+
 def get_financial_projection(user_id: int, month: int = None, year: int = None):
     """
     AI Predictive Financial Forecaster:

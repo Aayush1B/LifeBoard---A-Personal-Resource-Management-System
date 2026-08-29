@@ -473,6 +473,20 @@ class LifeBoardTestCase(unittest.TestCase):
         user = models.get_user_by_email('aayush@lifeboard.com')
         uid = user['user_id']
 
+        # Test Executive Productivity & Lifetime Analytics Suite
+        exec_stats = models.get_user_executive_stats(uid)
+        self.assertIn('grade', exec_stats)
+        self.assertIn('total_data_points', exec_stats)
+        self.assertIn('health', exec_stats)
+        self.assertIn('tasks', exec_stats)
+        self.assertIn('habits', exec_stats)
+        self.assertIn('finance', exec_stats)
+        self.assertGreaterEqual(exec_stats['health']['workout_count'], 0)
+        self.assertGreaterEqual(exec_stats['tasks']['total'], 0)
+        self.assertGreaterEqual(exec_stats['habits']['consistency_rate'], 0)
+        self.assertGreaterEqual(exec_stats['finance']['budget_adherence'], 0)
+
+        # Backwards compatible achievements
         achievements = models.get_user_achievements(uid)
         self.assertIn('badges', achievements)
         self.assertEqual(len(achievements['badges']), 6)

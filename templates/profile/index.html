@@ -4,86 +4,136 @@
 {% block page_title %}Your Profile & Account{% endblock %}
 
 {% block content %}
-<!-- Lifetime Accomplishment Summary Cards -->
-<div class="grid-4">
-  <div class="card" style="text-align: center; padding: 20px;">
-    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
-      <i class="fa-solid fa-dumbbell"></i>
-    </div>
-    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ total_lifetime_workouts }}</div>
-    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Workouts Logged</div>
-    <div style="font-size: 11px; color: var(--primary); margin-top: 4px;">{{ total_lifetime_calories }} kcal burned</div>
-  </div>
-
-  <div class="card" style="text-align: center; padding: 20px;">
-    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
-      <i class="fa-solid fa-fire"></i>
-    </div>
-    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ max_streak }} <span style="font-size: 14px;">days</span></div>
-    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Best Habit Streak</div>
-    <div style="font-size: 11px; color: var(--warning); margin-top: 4px;">Consistency Master</div>
-  </div>
-
-  <div class="card" style="text-align: center; padding: 20px;">
-    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
-      <i class="fa-solid fa-check-double"></i>
-    </div>
-    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">{{ task_summary.done }}</div>
-    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Tasks Accomplished</div>
-    <div style="font-size: 11px; color: var(--success); margin-top: 4px;">{{ task_summary.completion_rate }}% Success Rate</div>
-  </div>
-
-  <div class="card" style="text-align: center; padding: 20px;">
-    <div style="width: 48px; height: 48px; border-radius: var(--radius-full); background: var(--warning-light); color: #f59e0b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 20px;">
-      <i class="fa-solid fa-coins"></i>
-    </div>
-    <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">₹{{ "{:,.0f}".format(total_lifetime_spent) }}</div>
-    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Expenses Tracked</div>
-    <div style="font-size: 11px; color: #f59e0b; margin-top: 4px;">Complete Transparency</div>
-  </div>
-</div>
-
-<!-- Gamification & Achievement Badges Showcase -->
-<div class="card" style="margin-bottom: 20px;">
-  <div class="card-header">
+<!-- Executive Productivity & Lifetime Intelligence Suite -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
     <div>
       <h3 class="card-title">
-        <i class="fa-solid fa-trophy" style="color: #f59e0b;"></i>
-        <span>Milestone Achievements & Leveling</span>
+        <i class="fa-solid fa-chart-line" style="color: var(--primary);"></i>
+        <span>Executive Productivity & Lifetime Analytics</span>
       </h3>
-      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-        Rank: <strong style="color: var(--primary);">{{ achievements.level }}</strong> • {{ achievements.unlocked_count }} of {{ achievements.total_badges }} Unlocked
+      <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+        System Footprint: <strong style="color: var(--text-main);">{{ executive_stats.total_data_points }} Data Points Recorded</strong> • LifeScore™ Index: <strong style="color: var(--primary);">{{ executive_stats.lifescore.score }}/100</strong> ({{ executive_stats.lifescore.tier }})
       </div>
     </div>
-    <span class="badge badge-warning" style="font-size: 11px; padding: 6px 12px;">
-      {{ achievements.completion_rate }}% Completed
-    </span>
+    <div>
+      <span class="badge badge-{{ executive_stats.grade_badge }}" style="font-size: 12px; padding: 7px 14px; font-weight: 700; letter-spacing: 0.3px;">
+        <i class="fa-solid fa-award"></i> {{ executive_stats.grade }}
+      </span>
+    </div>
   </div>
 
-  <div class="grid-3" style="margin-bottom: 0;">
-    {% for badge in achievements.badges %}
-    <div class="badge-card {% if badge.unlocked %}unlocked{% else %}locked{% endif %}">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <div class="badge-icon-wrap" style="background: {% if badge.unlocked %}{{ badge.color }}20{% else %}var(--border-color){% endif %}; color: {% if badge.unlocked %}{{ badge.color }}{% else %}var(--text-muted){% endif %};">
-          <i class="fa-solid {{ badge.icon }}"></i>
+  <!-- 4 Core Executive Pillars -->
+  <div class="grid-4" style="margin-bottom: 20px;">
+    <!-- Pillar 1: Health & Conditioning -->
+    <div style="background: var(--bg-card-header); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Fitness & Training</span>
+        <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px;">
+          <i class="fa-solid fa-dumbbell"></i>
         </div>
-        {% if badge.unlocked %}
-          <span class="badge badge-success" style="font-size: 9.5px;"><i class="fa-solid fa-check"></i> UNLOCKED</span>
-        {% else %}
-          <span class="badge badge-secondary" style="font-size: 9.5px;"><i class="fa-solid fa-lock"></i> LOCKED</span>
-        {% endif %}
       </div>
-      <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">{{ badge.title }}</div>
-      <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">{{ badge.description }}</div>
-      
-      <div class="progress-bar-container" style="height: 6px;">
-        <div class="progress-bar-fill {% if badge.unlocked %}success{% else %}primary{% endif %}" style="width: {{ badge.progress }}%;"></div>
-      </div>
-      <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 4px; text-align: right;">
-        {{ badge.current }} / {{ badge.target }} ({{ badge.progress }}%)
+      <div style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">{{ executive_stats.health.workout_count }} <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Sessions</span></div>
+      <div style="font-size: 12px; color: var(--primary); font-weight: 600;">{{ "{:,.0f}".format(executive_stats.health.total_calories) }} kcal burned</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        <i class="fa-regular fa-clock"></i> {{ executive_stats.health.total_hours }}h active • {{ executive_stats.health.top_activity }}
       </div>
     </div>
-    {% endfor %}
+
+    <!-- Pillar 2: Task Execution & Velocity -->
+    <div style="background: var(--bg-card-header); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Task Velocity</span>
+        <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 14px;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">{{ executive_stats.tasks.done }} <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">/ {{ executive_stats.tasks.total }} Done</span></div>
+      <div style="font-size: 12px; color: var(--success); font-weight: 600;">{{ executive_stats.tasks.completion_rate }}% Completion Rate</div>
+      <div style="font-size: 11px; margin-top: 4px;">
+        {% if executive_stats.tasks.overdue > 0 %}
+          <span style="color: var(--danger); font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> {{ executive_stats.tasks.overdue }} overdue backlog</span>
+        {% else %}
+          <span style="color: var(--success);"><i class="fa-solid fa-shield-check"></i> Zero overdue backlog</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Pillar 3: Habit Consistency & Discipline -->
+    <div style="background: var(--bg-card-header); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Habit Discipline</span>
+        <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 14px;">
+          <i class="fa-solid fa-fire"></i>
+        </div>
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">{{ executive_stats.habits.max_streak }} <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Days Best</span></div>
+      <div style="font-size: 12px; color: var(--warning); font-weight: 600;">{{ executive_stats.habits.total_checkins }} Habit Logs Recorded</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        <i class="fa-solid fa-arrow-trend-up"></i> {{ executive_stats.habits.consistency_rate }}% Consistency Index
+      </div>
+    </div>
+
+    <!-- Pillar 4: Financial Governance -->
+    <div style="background: var(--bg-card-header); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Financial Governance</span>
+        <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">₹{{ "{:,.0f}".format(executive_stats.finance.total_spent) }}</div>
+      <div style="font-size: 12px; color: #d97706; font-weight: 600;">{{ executive_stats.finance.expense_count }} Tracked Expenses</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+        <i class="fa-solid fa-scale-balanced"></i> {{ executive_stats.finance.budget_adherence }}% Budget Adherence
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Balance Indicators -->
+  <div style="padding-top: 14px; border-top: 1px solid var(--border-color);">
+    <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; justify-content: space-between;">
+      <span><i class="fa-solid fa-sliders" style="color: var(--primary); margin-right: 6px;"></i>System Balance & Discipline Breakdown</span>
+      <span style="color: var(--text-muted);">{{ executive_stats.grade_desc }}</span>
+    </div>
+    <div class="grid-4" style="margin-bottom: 0;">
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Task Velocity</span>
+          <span style="font-weight: 700;">{{ executive_stats.tasks.completion_rate }}%</span>
+        </div>
+        <div class="progress-bar-container" style="height: 6px;">
+          <div class="progress-bar-fill success" style="width: {{ executive_stats.tasks.completion_rate }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Habit Discipline</span>
+          <span style="font-weight: 700;">{{ executive_stats.habits.consistency_rate }}%</span>
+        </div>
+        <div class="progress-bar-container" style="height: 6px;">
+          <div class="progress-bar-fill warning" style="width: {{ executive_stats.habits.consistency_rate }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Budget Control</span>
+          <span style="font-weight: 700;">{{ executive_stats.finance.budget_adherence }}%</span>
+        </div>
+        <div class="progress-bar-container" style="height: 6px;">
+          <div class="progress-bar-fill primary" style="width: {{ executive_stats.finance.budget_adherence }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Overall LifeScore™</span>
+          <span style="font-weight: 700;">{{ executive_stats.lifescore.score }}%</span>
+        </div>
+        <div class="progress-bar-container" style="height: 6px;">
+          <div class="progress-bar-fill {% if executive_stats.lifescore.score >= 70 %}success{% else %}warning{% endif %}" style="width: {{ executive_stats.lifescore.score }}%;"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
