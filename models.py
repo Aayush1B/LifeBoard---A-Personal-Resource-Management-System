@@ -2224,3 +2224,171 @@ def import_csv_data(user_id: int, module_name: str, csv_text: str):
         return False, f"Failed to parse CSV: {str(e)}"
     finally:
         conn.close()
+
+
+# ==========================================
+# 22. UNIVERSAL OMNISEARCH ENGINE
+# ==========================================
+
+def search_all_user_records(user_id: int, query: str) -> dict:
+    """
+    Fast, comprehensive search engine across all personal user records:
+    Tasks, Expenses, Workouts, Habits, and BMI.
+    Returns structured results grouped by module for instant Spotlight display.
+    """
+    if not query or not query.strip():
+        return {
+            'tasks': [],
+            'expenses': [],
+            'workouts': [],
+            'habits': [],
+            'bmi': [],
+            'total_count': 0
+        }
+
+    q = query.strip()
+    like_term = f"%{q}%"
+    conn = get_db()
+    cursor = conn.cursor()
+
+    results = {
+        'tasks': [],
+        'expenses': [],
+        'workouts': [],
+        'habits': [],
+        'bmi': [],
+        'total_count': 0
+    }
+
+    try:
+        # 1. Search Tasks
+        cursor.execute("""
+        SELECT task_id, title, description, priority, status, deadline
+        FROM tasks
+        WHERE user_id = ? AND (title LIKE ? OR description LIKE ? OR priority LIKE ? OR status LIKE ?)
+        ORDER BY CASE WHEN status = 'pending' THEN 1 WHEN status = 'in_progress' THEN 2 ELSE 3 END, deadline ASC
+        LIMIT 6
+        """, (user_id, like_term, like_term, like_term, like_term))
+        task_rows = cursor.fetchall()
+        for r in task_rows:
+            results['tasks'].append({
+                'id': r['task_id'],
+                'title': r['title'],
+                'subtitle': f"Priority: {r['priority'].capitalize()} • Status: {r['status'].replace('_', ' ').capitalize()} • Due: {r['deadline'][:10] if r['deadline'] else 'No date'}",
+                'url': f"/tasks",
+                'icon': 'fa-list-check',
+                'badge': r['priority'].capitalize(),
+                'badge_class': 'badge-danger' if r['priority'] == 'high' else ('badge-warning' if r['priority'] == 'medium' else 'badge-secondary')
+            })
+
+        # 2. Search Expenses
+        # Check if numeric search term
+        num_val = None
+        try:
+            num_val = float(q.replace('rs', '').replace('₹', '').replace(',', '').strip())
+        except ValueError:
+            pass
+
+        if num_val is not None and num_val > 0:
+            cursor.execute("""
+            SELECT expense_id, amount, category, description, expense_date
+            FROM expense_log
+            WHERE user_id = ? AND (description LIKE ? OR category LIKE ? OR (amount >= ? AND amount <= ?))
+            ORDER BY expense_date DESC, created_at DESC
+            LIMIT 6
+            """, (user_id, like_term, like_term, num_val * 0.9, num_val * 1.1))
+        else:
+            cursor.execute("""
+            SELECT expense_id, amount, category, description, expense_date
+            FROM expense_log
+            WHERE user_id = ? AND (description LIKE ? OR category LIKE ?)
+            ORDER BY expense_date DESC, created_at DESC
+            LIMIT 6
+            """, (user_id, like_term, like_term))
+
+        expense_rows = cursor.fetchall()
+        for r in expense_rows:
+            results['expenses'].append({
+                'id': r['expense_id'],
+                'title': f"₹{r['amount']:,.2f} — {r['description'] if r['description'] else r['category']}",
+                'subtitle': f"{r['category']} • Logged: {r['expense_date']}",
+                'url': f"/finance",
+                'icon': 'fa-indian-rupee-sign',
+                'badge': r['category'],
+                'badge_class': 'badge-success'
+            })
+
+        # 3. Search Workouts
+        cursor.execute("""
+        SELECT workout_id, activity_type, duration_mins, calories, notes, log_date
+        FROM workout_log
+        WHERE user_id = ? AND (activity_type LIKE ? OR notes LIKE ?)
+        ORDER BY log_date DESC, created_at DESC
+        LIMIT 6
+        """, (user_id, like_term, like_term))
+        workout_rows = cursor.fetchall()
+        for r in workout_rows:
+            results['workouts'].append({
+                'id': r['workout_id'],
+                'title': f"{r['activity_type']} ({r['duration_mins']} mins, {r['calories']} kcal)",
+                'subtitle': f"{r['log_date']} • {r['notes'] if r['notes'] else 'Logged workout'}",
+                'url': f"/health",
+                'icon': 'fa-dumbbell',
+                'badge': f"{r['calories']} kcal",
+                'badge_class': 'badge-primary'
+            })
+
+        # 4. Search Habits
+        cursor.execute("""
+        SELECT habit_id, habit_name, streak_count, last_completed_date
+        FROM habit_tracker
+        WHERE user_id = ? AND habit_name LIKE ?
+        ORDER BY streak_count DESC, habit_name ASC
+        LIMIT 6
+        """, (user_id, like_term))
+        habit_rows = cursor.fetchall()
+        for r in habit_rows:
+            streak = r['streak_count'] or 0
+            results['habits'].append({
+                'id': r['habit_id'],
+                'title': r['habit_name'],
+                'subtitle': f"Current Streak: {streak} days 🔥 • Last completed: {r['last_completed_date'] if r['last_completed_date'] else 'Never'}",
+                'url': f"/health",
+                'icon': 'fa-fire',
+                'badge': f"{streak}d Streak",
+                'badge_class': 'badge-danger'
+            })
+
+        # 5. Search BMI Records
+        cursor.execute("""
+        SELECT bmi_id, weight_kg, height_cm, bmi_value, category, recorded_date
+        FROM bmi_records
+        WHERE user_id = ? AND (category LIKE ? OR recorded_date LIKE ?)
+        ORDER BY recorded_date DESC
+        LIMIT 4
+        """, (user_id, like_term, like_term))
+        bmi_rows = cursor.fetchall()
+        for r in bmi_rows:
+            rec_date = r['recorded_date'][:10] if r['recorded_date'] else 'Logged'
+            results['bmi'].append({
+                'id': r['bmi_id'],
+                'title': f"BMI {r['bmi_value']:.1f} ({r['category']})",
+                'subtitle': f"Weight: {r['weight_kg']} kg • Height: {r['height_cm']} cm • {rec_date}",
+                'url': f"/health",
+                'icon': 'fa-weight-scale',
+                'badge': r['category'],
+                'badge_class': 'badge-primary'
+            })
+
+        results['total_count'] = (
+            len(results['tasks']) +
+            len(results['expenses']) +
+            len(results['workouts']) +
+            len(results['habits']) +
+            len(results['bmi'])
+        )
+
+    finally:
+        conn.close()
+
+    return results

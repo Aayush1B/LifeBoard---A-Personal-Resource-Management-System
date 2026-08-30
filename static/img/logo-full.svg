@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="fullBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141E33"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#080D1A"/>
+    </linearGradient>
+    <linearGradient id="fullBluePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="35%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="fullGreenPill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="40%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+    <linearGradient id="fullPurplePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="40%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+    <linearGradient id="fullBoardText" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="fullHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark Group (Scaled to 150x150, positioned at x=15, y=15) -->
+  <g transform="translate(15, 15) scale(0.29296875)">
+    <!-- Squircle Base -->
+    <rect x="12" y="12" width="488" height="488" rx="112" ry="112" fill="url(#fullBgGrad)" stroke="#334155" stroke-width="4"/>
+
+    <!-- Left Blue Pill -->
+    <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#fullBluePill)"/>
+    <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#fullHighlight)"/>
+
+    <!-- Top Green Pill -->
+    <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#fullGreenPill)"/>
+    <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#fullHighlight)"/>
+
+    <!-- Bottom Purple Pill -->
+    <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#fullPurplePill)"/>
+    <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#fullHighlight)"/>
+  </g>
+
+  <!-- Divider Line -->
+  <line x1="185" y1="35" x2="185" y2="145" stroke="#334155" stroke-width="1.5" stroke-opacity="0.6"/>
+
+  <!-- Typography: "LifeBoard" -->
+  <text x="210" y="105" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Poppins', 'Inter', sans-serif" font-weight="900" font-size="78" letter-spacing="-1.5">
+    <tspan fill="#F8FAFC">Life</tspan><tspan fill="url(#fullBoardText)">Board</tspan>
+  </text>
+
+  <!-- Tagline: "YOUR LIFE • ONE BOARD" -->
+  <text x="214" y="142" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Manrope', 'Inter', sans-serif" font-weight="800" font-size="16" fill="#94A3B8" letter-spacing="0.32em">
+    YOUR LIFE • ONE BOARD
+  </text>
+</svg>

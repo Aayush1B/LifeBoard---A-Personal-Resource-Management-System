@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141E33"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#080D1A"/>
+    </linearGradient>
+    <linearGradient id="bluePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="35%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="greenPill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="40%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+    <linearGradient id="purplePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="40%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+    <linearGradient id="highlightOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Base -->
+  <rect x="8" y="8" width="496" height="496" rx="112" ry="112" fill="url(#bgGrad)" stroke="#334155" stroke-width="6"/>
+
+  <!-- Logo Pillars -->
+  <!-- Left Blue (Tasks - "L" spine) -->
+  <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#bluePill)"/>
+  <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+
+  <!-- Top Right Green (Health) -->
+  <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#greenPill)"/>
+  <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+
+  <!-- Bottom Right Purple (Finance) -->
+  <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#purplePill)"/>
+  <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <!-- Background Squircle Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141E33"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#080D1A"/>
+    </linearGradient>
+
+    <!-- Squircle Border Stroke Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#1E293B" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Blue Pillar Gradient (Tasks & Schedule) -->
+    <linearGradient id="bluePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="35%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <!-- Green Pill Gradient (Health & Activity) -->
+    <linearGradient id="greenPill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="40%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+
+    <!-- Purple Pill Gradient (Finance & Expenses) -->
+    <linearGradient id="purplePill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="40%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+
+    <!-- Specular Highlight Overlay -->
+    <linearGradient id="highlightOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Pill Drop Shadow Filter -->
+    <filter id="softGlow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Base with Subtle Border -->
+  <rect x="12" y="12" width="488" height="488" rx="112" ry="112" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="4"/>
+
+  <!-- Glowing Inner Ambient Halo -->
+  <rect x="24" y="24" width="464" height="464" rx="100" ry="100" fill="none" stroke="#38BDF8" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- Group for Logo Pillars with Soft Drop Shadow -->
+  <g filter="url(#softGlow)">
+    <!-- 1. Left Vertical Blue Pill (Tasks & Schedule - "L" spine) -->
+    <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#bluePill)"/>
+    <rect x="92" y="92" width="128" height="328" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+
+    <!-- 2. Top-Right Green Pill (Health & Activity) -->
+    <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#greenPill)"/>
+    <rect x="236" y="92" width="184" height="156" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+
+    <!-- 3. Bottom-Right Purple Pill (Finance & Expenses) -->
+    <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#purplePill)"/>
+    <rect x="236" y="264" width="184" height="156" rx="64" ry="64" fill="url(#highlightOverlay)"/>
+  </g>
+</svg>

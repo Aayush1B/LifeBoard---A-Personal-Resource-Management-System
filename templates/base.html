@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{% block title %}LifeBoard — Personal Resource Management System{% endblock %}</title>
   
-  <!-- PWA Manifest & Meta -->
+  <!-- Favicons & Official Brand Identity -->
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -49,12 +54,10 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="{{ url_for('dashboard') }}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0;" title="LifeBoard Dashboard">
-          <div class="brand-logo">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
+          <img src="{{ url_for('static', filename='img/logo-icon.png') }}" alt="LifeBoard" style="width: 36px; height: 36px; border-radius: 9px; object-fit: contain; flex-shrink: 0;">
           <div style="flex: 1; min-width: 0;">
-            <div class="brand-name">LifeBoard</div>
-            <div class="brand-sub">PRMS Pro v2.0</div>
+            <div class="brand-name"><span class="brand-text-life">Life</span><span class="brand-text-board">Board</span></div>
+            <div class="brand-sub">YOUR LIFE &bull; ONE BOARD</div>
           </div>
         </a>
         <button class="btn-icon mobile-drawer-close" id="mobileDrawerClose" style="color: #94a3b8; display: none;">
@@ -93,6 +96,10 @@
         <a href="{{ url_for('reports') }}" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
           <i class="fa-solid fa-file-lines"></i>
           <span>Monthly Reports</span>
+        </a>
+        <a href="javascript:void(0)" onclick="startVoiceAssistant()" class="nav-item" style="color: #c084fc;" title="Voice Command Assistant (V)">
+          <i class="fa-solid fa-microphone" style="color: #c084fc;"></i>
+          <span>Voice Log Assistant</span>
         </a>
 
         {% if session.get('role') == 'admin' %}
@@ -143,11 +150,18 @@
         </div>
 
         <div class="header-right">
-          <!-- Command Palette Trigger (Ctrl + K) -->
-          <button class="btn btn-secondary btn-sm desktop-only-btn" onclick="openCommandPalette()" title="Spotlight Command Palette (Ctrl + K)" style="gap: 6px; font-size: 12px; padding: 7px 12px;">
-            <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i>
-            <span>Search</span>
-            <span class="cmd-kbd">Ctrl K</span>
+          <!-- Desktop Spotlight Omnisearch Trigger -->
+          <button class="spotlight-search-trigger" onclick="openCommandPalette()" title="Spotlight Omnisearch (Ctrl+K)">
+            <div class="spotlight-search-left">
+              <i class="fa-solid fa-magnifying-glass" style="color: var(--primary);"></i>
+              <span class="spotlight-search-text">Search tasks, expenses, workouts...</span>
+            </div>
+            <span class="cmd-kbd">Ctrl+K</span>
+          </button>
+
+          <!-- Mobile Omnisearch Trigger (Replaces profile in mobile top header) -->
+          <button class="theme-toggle-btn mobile-only-btn" onclick="openCommandPalette()" title="Search Everything" aria-label="Search">
+            <i class="fa-solid fa-magnifying-glass"></i>
           </button>
 
           <!-- In-App Notification Center Dropdown -->
@@ -196,13 +210,19 @@
             <i class="fa-solid fa-moon theme-toggle-icon" id="themeToggleIcon"></i>
           </button>
 
+          <!-- Desktop Voice Log Button -->
+          <button class="btn-voice-header desktop-only-btn" onclick="startVoiceAssistant()" title="Voice AI Assistant (Press 'V')">
+            <i class="fa-solid fa-microphone"></i>
+            <span>Voice Log</span>
+          </button>
+
           <!-- Quick Log Modal Button -->
           <button class="btn-quick-add" onclick="openModal('quickActionModal')" title="Quick Create Action">
             <i class="fa-solid fa-plus"></i>
             <span>Quick Log</span>
           </button>
 
-          <a href="{{ url_for('profile') }}" class="btn-icon" title="My Profile (You)">
+          <a href="{{ url_for('profile') }}" class="btn-icon desktop-only-btn" title="My Profile (You)">
             <i class="fa-solid fa-circle-user" style="font-size: 20px;"></i>
           </a>
           <a href="{{ url_for('logout') }}" class="btn-icon danger desktop-only-btn" title="Sign out">
@@ -214,12 +234,10 @@
       <!-- Public Top Header (Landing Page, Login, Register) with Dark Mode Toggle -->
       <header class="top-header" style="justify-content: space-between; padding: 12px 24px; position: sticky; top: 0; z-index: 90;">
         <a href="{{ url_for('index') }}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-main);">
-          <div class="brand-logo" style="width: 36px; height: 36px; font-size: 16px;">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
-          <div>
-            <div class="brand-name" style="font-size: 17px; color: var(--text-main);">LifeBoard</div>
-            <div class="brand-sub" style="font-size: 10px;">PRMS Pro v2.0</div>
+          <img src="{{ url_for('static', filename='img/logo-icon.png') }}" alt="LifeBoard" style="width: 36px; height: 36px; border-radius: 9px; object-fit: contain; flex-shrink: 0;">
+          <div style="flex: 1; min-width: 0;">
+            <div class="brand-name"><span class="brand-text-life">Life</span><span class="brand-text-board">Board</span></div>
+            <div class="brand-sub">YOUR LIFE &bull; ONE BOARD</div>
           </div>
         </a>
 
@@ -311,98 +329,169 @@
     <div class="cmd-palette-box">
       <div class="cmd-palette-search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="commandPaletteInput" class="cmd-palette-input" placeholder="Type a command or search (e.g. gym, task, spent, report)..." oninput="filterCommandPalette(this.value)">
+        <input type="text" id="commandPaletteInput" class="cmd-palette-input" placeholder="Search tasks, expenses, workouts, habits, or commands..." oninput="filterCommandPalette(this.value)" autocomplete="off">
         <span class="cmd-kbd">ESC</span>
       </div>
       <div class="cmd-palette-list" id="commandPaletteList">
-        <div class="cmd-palette-group-title">⚡ Quick Actions</div>
-        <div class="cmd-palette-item" onclick="closeCommandPalette(); startVoiceAssistant();" data-keywords="voice speak mic microphone talk ai fast log">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-microphone" style="color: #6366f1;"></i>
-            <span><strong>Voice Fast Logger</strong> — Speak any workout, task, or expense</span>
+        <!-- Dynamic Live Omnisearch Container -->
+        <div id="omnisearchLiveResults" style="display: none;"></div>
+
+        <!-- Default Actions & Modules -->
+        <div id="cmdPaletteDefaultSections">
+          <div class="cmd-palette-group-title">⚡ Quick Actions</div>
+          <div class="cmd-palette-item" onclick="closeCommandPalette(); startVoiceAssistant();" data-keywords="voice speak mic microphone talk ai fast log">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-microphone" style="color: #6366f1;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Voice Fast Logger</div>
+                <div class="cmd-palette-item-sub">Speak any workout, task, expense, or habit</div>
+              </div>
+            </div>
+            <span class="cmd-kbd">Mic</span>
           </div>
-          <span class="cmd-kbd">Mic</span>
-        </div>
-        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logWorkoutModal');" data-keywords="gym workout exercise run running cardio fitness calories burned">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-dumbbell" style="color: #4f46e5;"></i>
-            <span>Log a Workout</span>
+          <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logWorkoutModal');" data-keywords="gym workout exercise run running cardio fitness calories burned">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-dumbbell" style="color: #4f46e5;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Log a Workout</div>
+                <div class="cmd-palette-item-sub">Gym, Running, Cycling, HIIT & more</div>
+              </div>
+            </div>
+            <span class="badge badge-primary">Health</span>
           </div>
-          <span class="badge badge-primary">Health</span>
-        </div>
-        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addTaskModal');" data-keywords="task todo schedule deadline project urgent create">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-list-check" style="color: #ea580c;"></i>
-            <span>Create a Task</span>
+          <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addTaskModal');" data-keywords="task todo schedule deadline project urgent create">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-list-check" style="color: #ea580c;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Create a Task</div>
+                <div class="cmd-palette-item-sub">Add deadline, priority, and recurrence</div>
+              </div>
+            </div>
+            <span class="badge badge-warning">Task</span>
           </div>
-          <span class="badge badge-warning">Task</span>
-        </div>
-        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logExpenseModal');" data-keywords="spent spend expense food transport money cost payment rupees inr">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-indian-rupee-sign" style="color: #10b981;"></i>
-            <span>Record an Expense</span>
+          <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('logExpenseModal');" data-keywords="spent spend expense food transport money cost payment rupees inr">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-indian-rupee-sign" style="color: #10b981;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Record an Expense</div>
+                <div class="cmd-palette-item-sub">Track spending against monthly budget</div>
+              </div>
+            </div>
+            <span class="badge badge-success">Finance</span>
           </div>
-          <span class="badge badge-success">Finance</span>
-        </div>
-        <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addHabitModal');" data-keywords="habit streak water read daily routine">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-fire" style="color: #ef4444;"></i>
-            <span>Add Daily Habit</span>
+          <div class="cmd-palette-item" onclick="closeCommandPalette(); openModal('addHabitModal');" data-keywords="habit streak water read daily routine">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-fire" style="color: #ef4444;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Add Daily Habit</div>
+                <div class="cmd-palette-item-sub">Build discipline and maintain daily streaks</div>
+              </div>
+            </div>
+            <span class="badge badge-danger">Habit</span>
           </div>
-          <span class="badge badge-danger">Habit</span>
+
+          <div class="cmd-palette-group-title">🚀 Navigate Modules</div>
+          <a href="{{ url_for('dashboard') }}" class="cmd-palette-item" data-keywords="home dashboard overview metrics lifescore">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-chart-pie"></i>
+              <div>
+                <div class="cmd-palette-item-title">Dashboard Overview</div>
+                <div class="cmd-palette-item-sub">LifeScore, activity heatmap & daily metrics</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('health') }}" class="cmd-palette-item" data-keywords="health fitness workouts habits bmi calories">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-heart-pulse"></i>
+              <div>
+                <div class="cmd-palette-item-title">Health & Fitness</div>
+                <div class="cmd-palette-item-sub">Workout logger, habit streak matrix & BMI calculator</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('tasks') }}" class="cmd-palette-item" data-keywords="tasks todo schedule deadlines kanban">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-list-check"></i>
+              <div>
+                <div class="cmd-palette-item-title">Tasks & Schedule</div>
+                <div class="cmd-palette-item-sub">Kanban board, priority alerts & deadline management</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('finance') }}" class="cmd-palette-item" data-keywords="finance money expense budget savings forecast">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-wallet"></i>
+              <div>
+                <div class="cmd-palette-item-title">Personal Finance</div>
+                <div class="cmd-palette-item-sub">Budget tracker, expense logs & predictive forecast</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('calendar_view') }}" class="cmd-palette-item" data-keywords="calendar schedule dates month agenda">
+            <div class="cmd-palette-item-left">
+              <i class="fa-regular fa-calendar-days"></i>
+              <div>
+                <div class="cmd-palette-item-title">Synchronized Life Calendar</div>
+                <div class="cmd-palette-item-sub">Unified 3-domain monthly agenda view</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('reports') }}" class="cmd-palette-item" data-keywords="reports print monthly consolidated export pdf">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-file-lines"></i>
+              <div>
+                <div class="cmd-palette-item-title">Monthly Reports</div>
+                <div class="cmd-palette-item-sub">Executive summaries & print-ready PDF reports</div>
+              </div>
+            </div>
+          </a>
+          <a href="{{ url_for('profile') }}" class="cmd-palette-item" data-keywords="profile user settings password account you executive stats">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-user"></i>
+              <div>
+                <div class="cmd-palette-item-title">You (Profile & Stats)</div>
+                <div class="cmd-palette-item-sub">Executive analytics, badges & password settings</div>
+              </div>
+            </div>
+          </a>
+
+          <div class="cmd-palette-group-title">📊 Data Exports (CSV)</div>
+          <a href="{{ url_for('export_csv', module_name='workouts') }}" class="cmd-palette-item" data-keywords="export download csv excel workouts health">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Export Workouts to CSV</div>
+                <div class="cmd-palette-item-sub">Download spreadsheet of all logged exercises</div>
+              </div>
+            </div>
+            <span class="cmd-kbd">CSV</span>
+          </a>
+          <a href="{{ url_for('export_csv', module_name='tasks') }}" class="cmd-palette-item" data-keywords="export download csv excel tasks">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Export Tasks to CSV</div>
+                <div class="cmd-palette-item-sub">Download spreadsheet of all tasks and deadlines</div>
+              </div>
+            </div>
+            <span class="cmd-kbd">CSV</span>
+          </a>
+          <a href="{{ url_for('export_csv', module_name='finance') }}" class="cmd-palette-item" data-keywords="export download csv excel expenses finance">
+            <div class="cmd-palette-item-left">
+              <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
+              <div>
+                <div class="cmd-palette-item-title">Export Expenses to CSV</div>
+                <div class="cmd-palette-item-sub">Download complete financial expenditure ledger</div>
+              </div>
+            </div>
+            <span class="cmd-kbd">CSV</span>
+          </a>
         </div>
 
-        <div class="cmd-palette-group-title">🚀 Navigate Modules</div>
-        <a href="{{ url_for('dashboard') }}" class="cmd-palette-item" data-keywords="home dashboard overview metrics lifescore">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>Dashboard Overview</span>
-          </div>
-        </a>
-        <a href="{{ url_for('calendar_view') }}" class="cmd-palette-item" data-keywords="calendar schedule dates month agenda">
-          <div class="cmd-palette-item-left">
-            <i class="fa-regular fa-calendar-days"></i>
-            <span>Synchronized Life Calendar</span>
-          </div>
-        </a>
-        <a href="{{ url_for('reports') }}" class="cmd-palette-item" data-keywords="reports print monthly consolidated export pdf">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-file-lines"></i>
-            <span>Monthly Reports</span>
-          </div>
-        </a>
-        <a href="{{ url_for('profile') }}" class="cmd-palette-item" data-keywords="profile user settings password account you">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-user"></i>
-            <span>You (Profile & Stats)</span>
-          </div>
-        </a>
-
-        <div class="cmd-palette-group-title">📊 Data Exports (CSV)</div>
-        <a href="{{ url_for('export_csv', module_name='workouts') }}" class="cmd-palette-item" data-keywords="export download csv excel workouts health">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
-            <span>Export Workouts to CSV</span>
-          </div>
-          <span class="cmd-kbd">CSV</span>
-        </a>
-        <a href="{{ url_for('export_csv', module_name='tasks') }}" class="cmd-palette-item" data-keywords="export download csv excel tasks">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
-            <span>Export Tasks to CSV</span>
-          </div>
-          <span class="cmd-kbd">CSV</span>
-        </a>
-        <a href="{{ url_for('export_csv', module_name='finance') }}" class="cmd-palette-item" data-keywords="export download csv excel expenses finance">
-          <div class="cmd-palette-item-left">
-            <i class="fa-solid fa-file-csv" style="color: #0284c7;"></i>
-            <span>Export Expenses to CSV</span>
-          </div>
-          <span class="cmd-kbd">CSV</span>
-        </a>
-
-        <div id="cmdPaletteNoResults" style="display: none; padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
-          No matching commands found. Try typing another keyword.
+        <div id="cmdPaletteNoResults" style="display: none; padding: 28px 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
+          <i class="fa-solid fa-magnifying-glass" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+          <div>No matching records or actions found.</div>
+          <div style="font-size: 11.5px; margin-top: 4px;">Try searching for a task name, expense amount, or workout.</div>
         </div>
       </div>
       <div class="cmd-palette-footer">

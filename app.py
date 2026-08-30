@@ -1012,6 +1012,42 @@ def restore_database_backup():
 
 
 # -------------------------------------------------------------
+# Omnisearch Universal API
+# -------------------------------------------------------------
+
+@app.route('/api/omnisearch', methods=['GET'])
+@login_required
+def api_omnisearch():
+    """
+    Universal real-time Omnisearch API endpoint.
+    Accepts query parameter ?q=<term> and returns matching tasks, expenses, workouts, habits, and BMI records.
+    """
+    user_id = session['user_id']
+    query = request.args.get('q', '').strip()
+    
+    if not query:
+        return jsonify({
+            'success': True,
+            'query': '',
+            'results': {
+                'tasks': [],
+                'expenses': [],
+                'workouts': [],
+                'habits': [],
+                'bmi': [],
+                'total_count': 0
+            }
+        })
+        
+    results = models.search_all_user_records(user_id, query)
+    return jsonify({
+        'success': True,
+        'query': query,
+        'results': results
+    })
+
+
+# -------------------------------------------------------------
 # PWA Static Files Serving
 # -------------------------------------------------------------
 

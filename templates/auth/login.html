@@ -6,10 +6,8 @@
 <div style="max-width: 440px; margin: 40px auto;">
   <div class="card" style="padding: 32px; box-shadow: var(--shadow-lg);">
     <div style="text-align: center; margin-bottom: 24px;">
-      <div class="brand-logo" style="margin: 0 auto 12px; width: 44px; height: 44px;">
-        <i class="fa-solid fa-layer-group"></i>
-      </div>
-      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Sign In to LifeBoard</h2>
+      <img src="{{ url_for('static', filename='img/logo-icon.png') }}" alt="LifeBoard" style="width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 14px; object-fit: contain; display: block;">
+      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Sign In to <span class="brand-text-life">Life</span><span class="brand-text-board">Board</span></h2>
       <p style="font-size: 13px; color: var(--text-muted);">Enter your credentials to access your dashboard</p>
     </div>
 

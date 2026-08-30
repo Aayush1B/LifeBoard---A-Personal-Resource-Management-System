@@ -6,11 +6,9 @@
 <div style="max-width: 480px; margin: 30px auto;">
   <div class="card" style="padding: 32px; box-shadow: var(--shadow-lg);">
     <div style="text-align: center; margin-bottom: 24px;">
-      <div class="brand-logo" style="margin: 0 auto 12px; width: 44px; height: 44px;">
-        <i class="fa-solid fa-layer-group"></i>
-      </div>
-      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Create Your Account</h2>
-      <p style="font-size: 13px; color: var(--text-muted);">Join LifeBoard to organize your health, tasks, and finances</p>
+      <img src="{{ url_for('static', filename='img/logo-icon.png') }}" alt="LifeBoard" style="width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 14px; object-fit: contain; display: block;">
+      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Create Your Account on <span class="brand-text-life">Life</span><span class="brand-text-board">Board</span></h2>
+      <p style="font-size: 13px; color: var(--text-muted);">Organize your health, tasks, and finances in one place</p>
     </div>
 
     <form action="{{ url_for('register') }}" method="POST" id="regForm">

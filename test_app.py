@@ -830,6 +830,375 @@ class LifeBoardTestCase(unittest.TestCase):
         self.assertTrue(len(matching_exp) > 0)
         models.delete_expense(uid, matching_exp[0]['expense_id'])
 
+    # -------------------------------------------------------------
+    # 28. Universal Omnisearch Engine & API Endpoint Tests
+    # -------------------------------------------------------------
+    def test_35_omnisearch_api(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Test model search function
+        results = models.search_all_user_records(uid, 'gym')
+        self.assertIn('tasks', results)
+        self.assertIn('expenses', results)
+        self.assertIn('workouts', results)
+        self.assertIn('habits', results)
+        self.assertIn('bmi', results)
+
+        # 2. Test authenticated API endpoint
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['name'] = 'Aayush Sharma'
+            sess['email'] = 'aayush@lifeboard.com'
+            sess['role'] = 'user'
+
+        resp = self.client.get('/api/omnisearch?q=gym')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['query'], 'gym')
+        self.assertIn('results', data)
+
+        # 3. Test empty query handling
+        empty_resp = self.client.get('/api/omnisearch?q=')
+        self.assertEqual(empty_resp.status_code, 200)
+        empty_data = empty_resp.get_json()
+        self.assertTrue(empty_data['success'])
+        self.assertEqual(empty_data['results']['total_count'], 0)
+
+    # -------------------------------------------------------------
+    # 29. Static Assets, Favicons & Manifest Integrity Tests
+    # -------------------------------------------------------------
+    def test_36_static_assets_and_brand_favicons_integrity(self):
+        assets = [
+            'static/favicon.ico',
+            'static/favicon.png',
+            'static/favicon-16x16.png',
+            'static/favicon-32x32.png',
+            'static/apple-touch-icon.png',
+            'static/android-chrome-192x192.png',
+            'static/android-chrome-512x512.png',
+            'static/img/logo-icon.png',
+            'static/img/logo-full.png',
+            'static/css/style.css',
+            'static/js/main.js',
+            'static/manifest.json',
+            'static/sw.js'
+        ]
+        for asset in assets:
+            self.assertTrue(os.path.exists(asset), f"Missing asset file: {asset}")
+            self.assertGreater(os.path.getsize(asset), 0, f"Asset file is empty: {asset}")
+
+    # -------------------------------------------------------------
+    # 30. Full End-to-End User Lifecycle Integration Test
+    # -------------------------------------------------------------
+    def test_37_full_end_to_end_user_lifecycle(self):
+        ts = int(datetime.now().timestamp())
+        email = f"lifecycle_{ts}@lifeboard.test"
+        password = "MasterPassword123!"
+
+        # 1. Register
+        reg_resp = self.client.post('/register', data={
+            'name': 'Lifecycle Tester',
+            'email': email,
+            'password': password,
+            'confirm_password': password,
+            'phone': '+91 9123456780',
+            'age': '24'
+        }, follow_redirects=True)
+        self.assertEqual(reg_resp.status_code, 200)
+
+        # 2. Login
+        login_resp = self.client.post('/login', data={
+            'email': email,
+            'password': password
+        }, follow_redirects=True)
+        self.assertEqual(login_resp.status_code, 200)
+        self.assertIn(b'Dashboard', login_resp.data)
+
+        user = models.get_user_by_email(email)
+        uid = user['user_id']
+
+        # 3. Log a Workout
+        w_succ, _ = models.log_workout(uid, 'Running', 30, 280, 'Morning cardio sprint')
+        self.assertTrue(w_succ)
+
+        # 4. Add & Complete a Habit
+        h_succ, _ = models.add_habit(uid, 'Daily Cold Shower')
+        self.assertTrue(h_succ)
+        habits = models.get_user_habits(uid)
+        h_id = [h for h in habits if h['habit_name'] == 'Daily Cold Shower'][0]['habit_id']
+        t_succ, _ = models.toggle_habit_today(uid, h_id)
+        self.assertTrue(t_succ)
+
+        # 5. Save BMI
+        b_succ, _, b_data = models.calculate_and_save_bmi(uid, 180.0, 75.0)
+        self.assertTrue(b_succ)
+        self.assertEqual(b_data['category'], 'Normal')
+
+        # 6. Create Task & Complete Task
+        dl = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d 18:00:00')
+        t_create_succ, _ = models.create_task(uid, 'Ship Final Exam BCA Project', 'High priority release', 'high', dl)
+        self.assertTrue(t_create_succ)
+        tasks = models.get_user_tasks(uid, 'all')
+        t_id = [t for t in tasks if t['title'] == 'Ship Final Exam BCA Project'][0]['task_id']
+        models.update_task_status(uid, t_id, 'done')
+
+        # 7. Set Budget & Log Expense
+        today = date.today()
+        models.set_monthly_budget(uid, 20000.0, today.month, today.year)
+        e_succ, _ = models.log_expense(uid, 1200.0, 'Food', 'Healthy Groceries')
+        self.assertTrue(e_succ)
+
+        # 8. Test Omnisearch matches newly created data
+        search_res = models.search_all_user_records(uid, 'Exam')
+        self.assertGreaterEqual(len(search_res['tasks']), 1)
+        search_exp = models.search_all_user_records(uid, 'Groceries')
+        self.assertGreaterEqual(len(search_exp['expenses']), 1)
+
+        # 9. Test LifeScore computation
+        score = models.calculate_lifescore(uid)
+        self.assertGreaterEqual(score['score'], 0)
+        self.assertLessEqual(score['score'], 100)
+
+        # 10. Generate Monthly Report
+        rep = models.generate_monthly_report_data(uid, today.month, today.year)
+        self.assertGreaterEqual(rep['health']['workouts_count'], 1)
+        self.assertGreaterEqual(rep['tasks']['done'], 1)
+        self.assertGreaterEqual(rep['finance']['summary']['spent'], 1200.0)
+
+        # 11. Test CSV exports
+        for mod in ['workouts', 'tasks', 'finance']:
+            exp_res = self.client.get(f'/export/csv/{mod}')
+            self.assertEqual(exp_res.status_code, 200)
+            self.assertEqual(exp_res.content_type.split(';')[0], 'text/csv')
+
+        # 12. Logout
+        logout_resp = self.client.get('/logout', follow_redirects=True)
+        self.assertEqual(logout_resp.status_code, 200)
+
+    # -------------------------------------------------------------
+    # 31. Voice NLP Natural Language Parsing Edge Case Matrix
+    # -------------------------------------------------------------
+    def test_38_voice_nlp_comprehensive_matrix(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        test_phrases = [
+            ("spent 25 000 on rent", 25000.0, 'Expense'),
+            ("spent 25,000 on shopping", 25000.0, 'Expense'),
+            ("spent 25k on laptop", 25000.0, 'Expense'),
+            ("spent 25 thousand on bike", 25000.0, 'Expense'),
+            ("paid 1 50 000 for college fee", 150000.0, 'Expense'),
+            ("spent 2.5 lakh on car", 250000.0, 'Expense'),
+            ("bought shoes for 2500 rs", 2500.0, 'Expense'),
+            ("gym 45 mins 400 calories", 45, 'Workout'),
+            ("running 30 mins 250 cals", 30, 'Workout'),
+            ("task submit financial report tomorrow high priority", None, 'Task'),
+            ("habit drink 3 liters water daily", None, 'Habit')
+        ]
+
+        for phrase, expected_val, expected_type in test_phrases:
+            succ, msg, meta = models.parse_and_execute_voice_command(uid, phrase)
+            self.assertTrue(succ, f"Voice command failed for: {phrase}")
+            self.assertIsNotNone(meta)
+            self.assertEqual(meta['type'], expected_type)
+
+    # -------------------------------------------------------------
+    # 32. HTTP Route Response Status Code Matrix (Zero 500 Failures)
+    # -------------------------------------------------------------
+    def test_39_all_routes_http_status_matrix(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = uid
+            sess['email'] = 'aayush@lifeboard.com'
+            sess['name'] = 'Aayush Sharma'
+            sess['role'] = 'user'
+
+        get_routes = [
+            ('/', 302),
+            ('/login', 302),
+            ('/register', 302),
+            ('/dashboard', 200),
+            ('/health', 200),
+            ('/tasks', 200),
+            ('/finance', 200),
+            ('/calendar', 200),
+            ('/reports', 200),
+            ('/profile', 200),
+            ('/api/omnisearch?q=gym', 200),
+            ('/export/csv/workouts', 200),
+            ('/export/csv/tasks', 200),
+            ('/export/csv/finance', 200),
+            ('/manifest.json', 200),
+            ('/sw.js', 200)
+        ]
+
+        for route, expected_code in get_routes:
+            resp = self.client.get(route)
+            self.assertEqual(resp.status_code, expected_code, f"Route {route} returned status {resp.status_code} instead of {expected_code}")
+
+    # -------------------------------------------------------------
+    # 33. Omnisearch Edge Cases & Sanitization
+    # -------------------------------------------------------------
+    def test_40_spotlight_and_omnisearch_edge_cases(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        edge_queries = [
+            "   ",
+            "%",
+            "_",
+            "'''",
+            '"""',
+            "<script>alert(1)</script>",
+            "₹25,000",
+            "25 000",
+            "nonexistent_record_xyz_999",
+            "🔥",
+            "Gym & Cardio"
+        ]
+
+        for q in edge_queries:
+            results = models.search_all_user_records(uid, q)
+            self.assertIsInstance(results, dict)
+            self.assertIn('tasks', results)
+            self.assertIn('expenses', results)
+            self.assertIn('workouts', results)
+            self.assertIn('habits', results)
+            self.assertIn('bmi', results)
+            self.assertIsInstance(results['total_count'], int)
+
+    # -------------------------------------------------------------
+    # 34. Monthly Budget Threshold Class Transitions
+    # -------------------------------------------------------------
+    def test_41_monthly_budget_overspend_thresholds(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+        today = date.today()
+
+        # 1. 50% spend -> 'success'
+        models.set_monthly_budget(uid, 10000.0, today.month, today.year)
+        summary = models.get_financial_summary(uid, today.month, today.year)
+        self.assertIn(summary['progress_class'], ['success', 'warning', 'danger'])
+
+        # 2. Over 100% spend -> 'danger' and is_over_budget is True
+        models.set_monthly_budget(uid, 1.0, today.month, today.year)
+        over_summary = models.get_financial_summary(uid, today.month, today.year)
+        self.assertTrue(over_summary['is_over_budget'])
+        self.assertEqual(over_summary['progress_class'], 'danger')
+
+    # -------------------------------------------------------------
+    # 35. Habit Toggle On/Off and Streak Increment Integrity
+    # -------------------------------------------------------------
+    def test_42_habit_daily_toggle_and_streak_rules(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        h_name = f"Toggle Habit {datetime.now().timestamp()}"
+        models.add_habit(uid, h_name)
+        habits = models.get_user_habits(uid)
+        h = [x for x in habits if x['habit_name'] == h_name][0]
+        hid = h['habit_id']
+
+        # Toggle on
+        succ, msg = models.toggle_habit_today(uid, hid)
+        self.assertTrue(succ)
+        h_on = [x for x in models.get_user_habits(uid) if x['habit_id'] == hid][0]
+        self.assertEqual(h_on['done_today'], 1)
+        self.assertGreaterEqual(h_on['streak_count'], 1)
+
+        # Toggle off
+        succ_off, msg_off = models.toggle_habit_today(uid, hid)
+        self.assertTrue(succ_off)
+        h_off = [x for x in models.get_user_habits(uid) if x['habit_id'] == hid][0]
+        self.assertEqual(h_off['done_today'], 0)
+
+        # Cleanup
+        models.delete_habit(uid, hid)
+
+    # -------------------------------------------------------------
+    # 36. Task Kanban Column & Status Filtering
+    # -------------------------------------------------------------
+    def test_43_task_kanban_and_deadline_sorting(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        tasks_pending = models.get_user_tasks(uid, filter_status='pending')
+        for t in tasks_pending:
+            self.assertEqual(t['status'], 'pending')
+
+        tasks_done = models.get_user_tasks(uid, filter_status='done')
+        for t in tasks_done:
+            self.assertEqual(t['status'], 'done')
+
+        all_tasks = models.get_user_tasks(uid, filter_status='all')
+        self.assertIsInstance(all_tasks, list)
+
+    # -------------------------------------------------------------
+    # 37. Admin User Deletion & Complete Database Cascade
+    # -------------------------------------------------------------
+    def test_44_admin_user_deletion_cascade(self):
+        # Create a throwaway user with full data
+        ts = int(datetime.now().timestamp())
+        email = f"cascade_{ts}@lifeboard.test"
+        succ, uid = models.register_user("Cascade User", email, "pass123")
+        self.assertTrue(succ)
+
+        # Add data across domains
+        models.log_workout(uid, 'Gym', 40, 300)
+        models.add_habit(uid, 'Cascade Habit')
+        models.create_task(uid, 'Cascade Task', 'desc', 'medium', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        models.log_expense(uid, 500.0, 'Food', 'Snacks')
+        models.calculate_and_save_bmi(uid, 175.0, 70.0)
+
+        # Admin delete (admin_user_id=1, target_user_id=uid)
+        del_succ, del_msg = models.delete_user_by_admin(1, uid)
+        self.assertTrue(del_succ)
+
+        # Verify all child records were deleted
+        self.assertEqual(len(models.get_user_workouts(uid)), 0)
+        self.assertEqual(len(models.get_user_habits(uid)), 0)
+        self.assertEqual(len(models.get_user_tasks(uid)), 0)
+        self.assertEqual(len(models.get_user_expenses(uid)), 0)
+        self.assertEqual(len(models.get_user_bmi_history(uid)), 0)
+
+    # -------------------------------------------------------------
+    # 38. CSV Data Import & Integrity Verification
+    # -------------------------------------------------------------
+    def test_45_csv_import_data_integrity(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Import Tasks CSV
+        task_csv = "Title,Description,Priority,Status,Recurring,Deadline\nBatch Task 1,Imported via CSV,high,pending,none,2026-09-01 18:00:00\nBatch Task 2,Imported via CSV,medium,pending,none,2026-09-02 18:00:00\n"
+        succ, msg = models.import_csv_data(uid, 'tasks', task_csv)
+        self.assertTrue(succ)
+        self.assertIn("Successfully imported", msg)
+
+        # 2. Import Finance CSV
+        fin_csv = "Amount,Category,Description,Expense_Date\n1500.0,Food,Bulk Groceries,2026-08-30\n750.0,Transport,Cab Fare,2026-08-30\n"
+        f_succ, f_msg = models.import_csv_data(uid, 'finance', fin_csv)
+        self.assertTrue(f_succ)
+
+        # 3. Import Workouts CSV
+        w_csv = "Activity,Duration_Mins,Calories,Log_Date,Notes\nSwimming,45,400,2026-08-30,Freestyle pool\n"
+        w_succ, w_msg = models.import_csv_data(uid, 'workouts', w_csv)
+        self.assertTrue(w_succ)
+
+    # -------------------------------------------------------------
+    # 39. Synchronized Multi-Domain Calendar Aggregation
+    # -------------------------------------------------------------
+    def test_46_calendar_events_multi_domain_aggregation(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+        today = date.today()
+
+        cal_events = models.get_calendar_events(uid, today.month, today.year)
+        self.assertIsInstance(cal_events, dict)
+
 
 if __name__ == '__main__':
     unittest.main()

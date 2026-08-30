@@ -265,6 +265,9 @@ window.closeVoiceAssistant = function() {
   closeModal('voiceCommandModal');
 };
 
+window.openVoiceModal = window.startVoiceAssistant;
+window.closeVoiceModal = window.closeVoiceAssistant;
+
 window.submitVoiceCommand = function() {
   const input = document.getElementById('voiceTranscriptInput');
   const resBox = document.getElementById('voiceResultBox');
@@ -396,6 +399,23 @@ window.openCommandPalette = function() {
   }
 };
 
+let omnisearchDebounceTimer = null;
+let currentSelectedIndex = -1;
+
+window.openCommandPalette = function() {
+  const overlay = document.getElementById('commandPaletteOverlay');
+  const input = document.getElementById('commandPaletteInput');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (input) {
+      input.value = '';
+      input.focus();
+      filterCommandPalette('');
+    }
+  }
+};
+
 window.closeCommandPalette = function() {
   const overlay = document.getElementById('commandPaletteOverlay');
   if (overlay) {
@@ -404,44 +424,246 @@ window.closeCommandPalette = function() {
   }
 };
 
+function getVisibleCommandItems() {
+  return Array.from(document.querySelectorAll('#commandPaletteList .cmd-palette-item')).filter(el => {
+    return el.offsetParent !== null && window.getComputedStyle(el).display !== 'none';
+  });
+}
+
+function updateCommandSelection(index) {
+  const items = getVisibleCommandItems();
+  items.forEach(el => el.classList.remove('selected'));
+  if (items.length === 0) {
+    currentSelectedIndex = -1;
+    return;
+  }
+  if (index < 0) index = 0;
+  if (index >= items.length) index = items.length - 1;
+  currentSelectedIndex = index;
+  items[currentSelectedIndex].classList.add('selected');
+  items[currentSelectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 window.filterCommandPalette = function(query) {
   const q = (query || '').toLowerCase().trim();
-  const items = document.querySelectorAll('.cmd-palette-item');
-  let hasMatches = false;
+  const defaultItems = document.querySelectorAll('#cmdPaletteDefaultSections .cmd-palette-item');
+  const liveContainer = document.getElementById('omnisearchLiveResults');
+  const noRes = document.getElementById('cmdPaletteNoResults');
+  const defaultSections = document.getElementById('cmdPaletteDefaultSections');
 
-  items.forEach(item => {
+  // Filter static default items
+  let defaultMatches = 0;
+  defaultItems.forEach(item => {
     const text = item.textContent.toLowerCase();
     const keywords = (item.getAttribute('data-keywords') || '').toLowerCase();
     if (!q || text.includes(q) || keywords.includes(q)) {
       item.style.display = 'flex';
-      hasMatches = true;
+      defaultMatches++;
     } else {
       item.style.display = 'none';
     }
   });
 
-  const noRes = document.getElementById('cmdPaletteNoResults');
-  if (noRes) {
-    noRes.style.display = hasMatches ? 'none' : 'block';
+  if (!q) {
+    if (liveContainer) {
+      liveContainer.style.display = 'none';
+      liveContainer.innerHTML = '';
+    }
+    if (defaultSections) defaultSections.style.display = 'block';
+    if (noRes) noRes.style.display = 'none';
+    updateCommandSelection(0);
+    return;
   }
+
+  // Live Omnisearch Fetch with Debounce
+  clearTimeout(omnisearchDebounceTimer);
+  omnisearchDebounceTimer = setTimeout(() => {
+    fetch('/api/omnisearch?q=' + encodeURIComponent(q), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success || !data.results) return;
+
+      const r = data.results;
+      let html = '';
+      let liveMatches = 0;
+
+      // 1. Tasks
+      if (r.tasks && r.tasks.length > 0) {
+        liveMatches += r.tasks.length;
+        html += `<div class="cmd-palette-group-title">📋 Matching Tasks (${r.tasks.length})</div>`;
+        r.tasks.forEach(t => {
+          html += `
+            <a href="${t.url}" class="cmd-palette-item" onclick="closeCommandPalette()">
+              <div class="cmd-palette-item-left">
+                <i class="fa-solid ${t.icon}" style="color: #6366f1;"></i>
+                <div>
+                  <div class="cmd-palette-item-title">${t.title}</div>
+                  <div class="cmd-palette-item-sub">${t.subtitle}</div>
+                </div>
+              </div>
+              <span class="badge ${t.badge_class}">${t.badge}</span>
+            </a>
+          `;
+        });
+      }
+
+      // 2. Expenses
+      if (r.expenses && r.expenses.length > 0) {
+        liveMatches += r.expenses.length;
+        html += `<div class="cmd-palette-group-title">💰 Matching Expenses (${r.expenses.length})</div>`;
+        r.expenses.forEach(e => {
+          html += `
+            <a href="${e.url}" class="cmd-palette-item" onclick="closeCommandPalette()">
+              <div class="cmd-palette-item-left">
+                <i class="fa-solid ${e.icon}" style="color: #10b981;"></i>
+                <div>
+                  <div class="cmd-palette-item-title">${e.title}</div>
+                  <div class="cmd-palette-item-sub">${e.subtitle}</div>
+                </div>
+              </div>
+              <span class="badge ${e.badge_class}">${e.badge}</span>
+            </a>
+          `;
+        });
+      }
+
+      // 3. Workouts
+      if (r.workouts && r.workouts.length > 0) {
+        liveMatches += r.workouts.length;
+        html += `<div class="cmd-palette-group-title">🏋️ Matching Workouts (${r.workouts.length})</div>`;
+        r.workouts.forEach(w => {
+          html += `
+            <a href="${w.url}" class="cmd-palette-item" onclick="closeCommandPalette()">
+              <div class="cmd-palette-item-left">
+                <i class="fa-solid ${w.icon}" style="color: #4f46e5;"></i>
+                <div>
+                  <div class="cmd-palette-item-title">${w.title}</div>
+                  <div class="cmd-palette-item-sub">${w.subtitle}</div>
+                </div>
+              </div>
+              <span class="badge ${w.badge_class}">${w.badge}</span>
+            </a>
+          `;
+        });
+      }
+
+      // 4. Habits
+      if (r.habits && r.habits.length > 0) {
+        liveMatches += r.habits.length;
+        html += `<div class="cmd-palette-group-title">🔥 Matching Habits (${r.habits.length})</div>`;
+        r.habits.forEach(h => {
+          html += `
+            <a href="${h.url}" class="cmd-palette-item" onclick="closeCommandPalette()">
+              <div class="cmd-palette-item-left">
+                <i class="fa-solid ${h.icon}" style="color: #ef4444;"></i>
+                <div>
+                  <div class="cmd-palette-item-title">${h.title}</div>
+                  <div class="cmd-palette-item-sub">${h.subtitle}</div>
+                </div>
+              </div>
+              <span class="badge ${h.badge_class}">${h.badge}</span>
+            </a>
+          `;
+        });
+      }
+
+      // 5. BMI Records
+      if (r.bmi && r.bmi.length > 0) {
+        liveMatches += r.bmi.length;
+        html += `<div class="cmd-palette-group-title">⚖️ Matching Health Stats (${r.bmi.length})</div>`;
+        r.bmi.forEach(b => {
+          html += `
+            <a href="${b.url}" class="cmd-palette-item" onclick="closeCommandPalette()">
+              <div class="cmd-palette-item-left">
+                <i class="fa-solid ${b.icon}" style="color: #0284c7;"></i>
+                <div>
+                  <div class="cmd-palette-item-title">${b.title}</div>
+                  <div class="cmd-palette-item-sub">${b.subtitle}</div>
+                </div>
+              </div>
+              <span class="badge ${b.badge_class}">${b.badge}</span>
+            </a>
+          `;
+        });
+      }
+
+      if (liveContainer) {
+        if (liveMatches > 0) {
+          liveContainer.innerHTML = html;
+          liveContainer.style.display = 'block';
+        } else {
+          liveContainer.innerHTML = '';
+          liveContainer.style.display = 'none';
+        }
+      }
+
+      const totalMatches = defaultMatches + liveMatches;
+      if (noRes) {
+        noRes.style.display = totalMatches === 0 ? 'block' : 'none';
+      }
+
+      updateCommandSelection(0);
+    })
+    .catch(() => {});
+  }, 120);
+
+  updateCommandSelection(0);
 };
 
-// Global Hotkeys Listener
+// Global Hotkeys & Arrow Navigation Listener
 document.addEventListener('keydown', (e) => {
-  // Ctrl + K or Cmd + K -> Command Palette
+  const overlay = document.getElementById('commandPaletteOverlay');
+  const isPaletteOpen = overlay && overlay.style.display === 'flex';
+
+  // Ctrl + K or Cmd + K -> Toggle Command Palette
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    const overlay = document.getElementById('commandPaletteOverlay');
-    if (overlay && overlay.style.display === 'flex') {
+    if (isPaletteOpen) {
       closeCommandPalette();
     } else {
       openCommandPalette();
     }
+    return;
   }
 
-  // Close Command Palette on Escape
-  if (e.key === 'Escape') {
-    closeCommandPalette();
+  // Keyboard navigation within open Command Palette
+  if (isPaletteOpen) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      updateCommandSelection(currentSelectedIndex + 1);
+      return;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      updateCommandSelection(currentSelectedIndex - 1);
+      return;
+    } else if (e.key === 'Enter') {
+      const items = getVisibleCommandItems();
+      if (items.length > 0 && currentSelectedIndex >= 0 && currentSelectedIndex < items.length) {
+        e.preventDefault();
+        items[currentSelectedIndex].click();
+      }
+      return;
+    } else if (e.key === 'Escape') {
+      closeCommandPalette();
+      return;
+    }
+  }
+
+  // Press 'V' or 'v' (outside of input fields) -> Open Voice Assistant Modal
+  if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const activeEl = document.activeElement;
+    const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT' || activeEl.isContentEditable);
+    if (!isInput) {
+      const voiceModal = document.getElementById('voiceCommandModal');
+      if (voiceModal && voiceModal.style.display !== 'flex') {
+        e.preventDefault();
+        if (typeof startVoiceAssistant === 'function') {
+          startVoiceAssistant();
+        }
+      }
+    }
   }
 });
 
