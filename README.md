@@ -6,6 +6,8 @@ Academic Project for **IGNOU — Bachelor of Computer Applications (BCA)**
 Course Code: **BCSP-064** | Version: **1.0**  
 Prepared By: **Aayush**
 
+🔗 **Live Production Deployment**: [https://lifeboard.pythonanywhere.com](https://lifeboard.pythonanywhere.com)
+
 ---
 
 ## 🌟 Key Features

@@ -1084,5 +1084,6 @@ def internal_server_error(e):
 # -------------------------------------------------------------
 
 if __name__ == '__main__':
-    # host='0.0.0.0' allows access from localhost and any device on the same local network / Wi-Fi
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Binds to dynamic cloud PORT or defaults to 5000 for local development
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
