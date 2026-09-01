@@ -378,6 +378,9 @@ initTheme();
 document.addEventListener('DOMContentLoaded', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
   updateThemeIcon(current);
+  if (typeof initNotifications === 'function') {
+    initNotifications();
+  }
 });
 
 
@@ -873,12 +876,31 @@ window.initNotifications = function() {
     });
   }
   updateNotificationUI();
+  updateNativeNotifBannerUI();
+  if (typeof startNativeNotif60sTimer === 'function') {
+    startNativeNotif60sTimer();
+  }
+
+  // Smart Desktop Alert for High-Priority Items (once per session)
+  if (checkNativeNotificationSupport() && Notification.permission === 'granted' && !sessionStorage.getItem('lifeboard_session_alert_sent')) {
+    const badgeEl = document.getElementById('notifBellBadge');
+    if (badgeEl && parseInt(badgeEl.textContent, 10) > 0) {
+      setTimeout(() => {
+        sendNativeBrowserNotification('LifeBoard Action Required ⚠️', {
+          body: `You have ${badgeEl.textContent} active alerts needing your attention.`,
+          url: '/tasks'
+        });
+        sessionStorage.setItem('lifeboard_session_alert_sent', 'true');
+      }, 3000);
+    }
+  }
 };
 
 window.toggleNotificationDropdown = function() {
   const dd = document.getElementById('notificationDropdown');
   if (dd) {
     dd.classList.toggle('open');
+    updateNativeNotifBannerUI();
   }
 };
 
@@ -893,6 +915,219 @@ document.addEventListener('click', (e) => {
 
 
 /* =============================================================
+   HTML5 Browser Native Push Notification Controller
+   (Auto-dismisses from dropdown after 60s per session/refresh)
+   ============================================================= */
+
+let nativeNotifTimer = null;
+
+window.checkNativeNotificationSupport = function() {
+  return ('Notification' in window);
+};
+
+window.isPushNotificationActive = function() {
+  if (!checkNativeNotificationSupport()) return false;
+  const isMuted = localStorage.getItem('lifeboard_push_muted') === 'true';
+  return (Notification.permission === 'granted' && !isMuted);
+};
+
+window.startNativeNotif60sTimer = function() {
+  const banner = document.getElementById('nativeNotifBanner');
+  if (!banner) return;
+
+  banner.classList.remove('dismissed');
+
+  if (nativeNotifTimer) {
+    clearTimeout(nativeNotifTimer);
+  }
+
+  // Entire bar disappears smoothly after 60 seconds
+  nativeNotifTimer = setTimeout(() => {
+    if (banner) {
+      banner.classList.add('dismissed');
+    }
+  }, 60000);
+};
+
+window.updateNativeNotifBannerUI = function() {
+  const banner = document.getElementById('nativeNotifBanner');
+  const statusText = document.getElementById('nativeNotifStatusText');
+  const icon = document.getElementById('nativeNotifIcon');
+  const btnToggle = document.getElementById('btnToggleNativeNotif');
+  const btnTest = document.getElementById('btnTestNativeNotif');
+
+  if (!banner || !statusText || !btnToggle) return;
+
+  if (!checkNativeNotificationSupport()) {
+    statusText.textContent = 'Alerts not supported';
+    btnToggle.textContent = 'Unavailable';
+    btnToggle.disabled = true;
+    if (btnTest) btnTest.style.display = 'none';
+    return;
+  }
+
+  const perm = Notification.permission;
+  const isMuted = localStorage.getItem('lifeboard_push_muted') === 'true';
+
+  if (perm === 'denied') {
+    statusText.textContent = 'Alerts Blocked';
+    if (icon) {
+      icon.className = 'fa-solid fa-bell-slash';
+      icon.style.color = 'var(--danger)';
+    }
+    btnToggle.textContent = 'Blocked';
+    btnToggle.disabled = true;
+    btnToggle.classList.remove('is-enabled');
+    if (btnTest) btnTest.style.display = 'none';
+  } else if (perm === 'granted' && !isMuted) {
+    statusText.textContent = 'Push Notifications';
+    if (icon) {
+      icon.className = 'fa-solid fa-bell';
+      icon.style.color = 'var(--primary)';
+    }
+    btnToggle.textContent = 'Disable';
+    btnToggle.classList.add('is-enabled');
+    btnToggle.disabled = false;
+    btnToggle.title = 'Disable push notifications';
+    if (btnTest) btnTest.style.display = 'inline-flex';
+  } else {
+    // Default or Muted
+    statusText.textContent = 'Push Notifications';
+    if (icon) {
+      icon.className = 'fa-solid fa-bell';
+      icon.style.color = 'var(--text-muted)';
+    }
+    btnToggle.textContent = 'Enable';
+    btnToggle.classList.remove('is-enabled');
+    btnToggle.disabled = false;
+    btnToggle.title = 'Enable push notifications';
+    if (btnTest) btnTest.style.display = 'inline-flex';
+  }
+};
+
+window.togglePushNotificationState = function(event) {
+  if (event) event.stopPropagation();
+
+  if (!checkNativeNotificationSupport()) {
+    alert('Browser notifications are not supported in your current browser.');
+    return;
+  }
+
+  const currentlyActive = isPushNotificationActive();
+
+  if (currentlyActive) {
+    // Disable / Mute
+    localStorage.setItem('lifeboard_push_muted', 'true');
+    updateNativeNotifBannerUI();
+    if (typeof playSound === 'function') playSound('ping');
+  } else {
+    // Enable
+    localStorage.removeItem('lifeboard_push_muted');
+    if (Notification.permission === 'granted') {
+      updateNativeNotifBannerUI();
+      sendNativeBrowserNotification('Push Notifications Active! 🔔', {
+        body: 'You will receive reminders for task deadlines and daily habits.',
+        url: '/dashboard'
+      });
+      if (typeof playSound === 'function') playSound('success');
+    } else {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          updateNativeNotifBannerUI();
+          sendNativeBrowserNotification('Push Notifications Enabled! 🔔', {
+            body: 'You will receive reminders for task deadlines and daily habits.',
+            url: '/dashboard'
+          });
+          if (typeof playSound === 'function') playSound('success');
+        } else {
+          updateNativeNotifBannerUI();
+        }
+      });
+    }
+  }
+};
+
+window.sendNativeBrowserNotification = function(title, options) {
+  if (!checkNativeNotificationSupport() || !isPushNotificationActive()) {
+    return;
+  }
+
+  const defaults = {
+    icon: '/static/android-chrome-192x192.png',
+    badge: '/static/favicon-32x32.png',
+    vibrate: [200, 100, 200],
+    data: { url: (options && options.url) ? options.url : '/dashboard' }
+  };
+
+  const finalOptions = Object.assign({}, defaults, options);
+
+  // Try service worker notification first
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, finalOptions);
+    }).catch(() => {
+      try {
+        const notif = new Notification(title, finalOptions);
+        notif.onclick = function() {
+          window.focus();
+          if (finalOptions.data && finalOptions.data.url) {
+            window.location.href = finalOptions.data.url;
+          }
+          notif.close();
+        };
+      } catch (e) {}
+    });
+  } else {
+    try {
+      const notif = new Notification(title, finalOptions);
+      notif.onclick = function() {
+        window.focus();
+        if (finalOptions.data && finalOptions.data.url) {
+          window.location.href = finalOptions.data.url;
+        }
+        notif.close();
+      };
+    } catch (e) {
+      console.warn('Native notification error:', e);
+    }
+  }
+};
+
+window.sendTestNativeNotification = function(event) {
+  if (event) event.stopPropagation();
+
+  // If not enabled yet, temporarily show real alert
+  if (Notification.permission !== 'granted') {
+    Notification.requestPermission().then(permission => {
+      updateNativeNotifBannerUI();
+      if (permission === 'granted') {
+        const notif = new Notification('LifeBoard Test Notification ⚡', {
+          body: 'Native browser notifications are working seamlessly on your device!',
+          icon: '/static/android-chrome-192x192.png'
+        });
+        if (typeof playSound === 'function') playSound('ping');
+      }
+    });
+    return;
+  }
+
+  try {
+    const notif = new Notification('LifeBoard Test Notification ⚡', {
+      body: 'Native browser notifications are working seamlessly on your device!',
+      icon: '/static/android-chrome-192x192.png'
+    });
+    notif.onclick = function() {
+      window.focus();
+      notif.close();
+    };
+    if (typeof playSound === 'function') playSound('ping');
+  } catch (e) {
+    console.warn('Test notification error:', e);
+  }
+};
+
+
+/* =============================================================
    PWA Service Worker Registration
    ============================================================= */
 
@@ -903,5 +1138,6 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('PWA registration error:', err));
   });
 }
+
 
 

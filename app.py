@@ -557,13 +557,36 @@ def finance():
     user_id = session['user_id']
     today = date.today()
 
-    # Allow filtering by month/year
+    # Allow filtering by month/year (defaults to current month & year)
     try:
         month = int(request.args.get('month', today.month))
         year = int(request.args.get('year', today.year))
+        if month < 1 or month > 12:
+            month = today.month
+        if year < 2000 or year > 2100:
+            year = today.year
     except ValueError:
         month = today.month
         year = today.year
+
+    # Previous and Next month calculations for manual navigation
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+
+    is_current_month = (month == today.month and year == today.year)
+    selected_date = datetime(year, month, 1)
+    month_name = selected_date.strftime('%B %Y')
 
     fin_summary = models.get_financial_summary(user_id, month, year)
     expenses = models.get_user_expenses(user_id, month, year, limit=100)
@@ -578,6 +601,14 @@ def finance():
                            categories=models.EXPENSE_CATEGORIES,
                            selected_month=month,
                            selected_year=year,
+                           month_name=month_name,
+                           prev_month=prev_month,
+                           prev_year=prev_year,
+                           next_month=next_month,
+                           next_year=next_year,
+                           is_current_month=is_current_month,
+                           current_month=today.month,
+                           current_year=today.year,
                            today_str=today.strftime('%Y-%m-%d'))
 
 @app.route('/finance/expense/add', methods=['POST'])
@@ -1086,4 +1117,5 @@ def internal_server_error(e):
 if __name__ == '__main__':
     # Binds to dynamic cloud PORT or defaults to 5000 for local development
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug)

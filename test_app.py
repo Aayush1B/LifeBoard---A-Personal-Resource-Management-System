@@ -1199,9 +1199,150 @@ class LifeBoardTestCase(unittest.TestCase):
         cal_events = models.get_calendar_events(uid, today.month, today.year)
         self.assertIsInstance(cal_events, dict)
 
+    # -------------------------------------------------------------
+    # 40. Native Push Notifications & Service Worker Assets
+    # -------------------------------------------------------------
+    def test_47_native_push_notifications_and_sw_assets(self):
+        # 1. Verify service worker serves notificationclick event
+        sw_resp = self.client.get('/sw.js')
+        self.assertEqual(sw_resp.status_code, 200)
+        self.assertIn(b'notificationclick', sw_resp.data)
+
+        # 2. Verify native notification icons exist and are non-empty
+        icon_path = os.path.join(os.path.dirname(__file__), 'static', 'android-chrome-192x192.png')
+        self.assertTrue(os.path.exists(icon_path))
+        self.assertGreater(os.path.getsize(icon_path), 0)
+
+        # 3. Verify notification dropdown markup rendered in base template
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user['user_id']
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        dash_resp = self.client.get('/dashboard')
+        self.assertEqual(dash_resp.status_code, 200)
+        self.assertIn(b'nativeNotifBanner', dash_resp.data)
+        self.assertIn(b'btnToggleNativeNotif', dash_resp.data)
+
+    # -------------------------------------------------------------
+    # 41. Personal Finance Month Navigation Toolbar
+    # -------------------------------------------------------------
+    def test_48_finance_month_navigation(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user['user_id']
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        # 1. Default load shows current month
+        resp = self.client.get('/finance')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b'Current Month', resp.data)
+
+        # 2. Navigate to previous month (August 2026)
+        resp_aug = self.client.get('/finance?month=8&year=2026')
+        self.assertEqual(resp_aug.status_code, 200)
+        self.assertIn(b'August 2026', resp_aug.data)
+        self.assertIn(b'Back to Current Month', resp_aug.data)
+        self.assertIn(b'month=7&amp;year=2026', resp_aug.data) # Previous step to July
+        self.assertIn(b'month=9&amp;year=2026', resp_aug.data) # Next step to September
+
+    # -------------------------------------------------------------
+    # 42. Finance Boundary & Malformed Month Input Resilience
+    # -------------------------------------------------------------
+    def test_49_finance_boundary_and_invalid_month_handling(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user['user_id']
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = user['role']
+
+        # 1. Non-numeric or out-of-range month query parameters fall back gracefully
+        malformed_routes = [
+            '/finance?month=99&year=2026',
+            '/finance?month=-5&year=2026',
+            '/finance?month=abc&year=xyz',
+            '/finance?month=1&year=99999'
+        ]
+        for r in malformed_routes:
+            resp = self.client.get(r)
+            self.assertEqual(resp.status_code, 200, f"Malformed route {r} crashed with {resp.status_code}")
+
+        # 2. Add expense with 0 or negative amount safely rejected
+        res_zero = self.client.post('/finance/expense/add', data={
+            'amount': '0',
+            'category': 'Food',
+            'description': 'Zero test',
+            'expense_date': '2026-09-01'
+        }, follow_redirects=True)
+        self.assertEqual(res_zero.status_code, 200)
+        self.assertIn(b'greater than zero', res_zero.data)
+
+        # 3. Add expense with non-numeric text safely rejected
+        res_text = self.client.post('/finance/expense/add', data={
+            'amount': 'five hundred',
+            'category': 'Food',
+            'description': 'Text test',
+            'expense_date': '2026-09-01'
+        }, follow_redirects=True)
+        self.assertEqual(res_text.status_code, 200)
+        self.assertIn(b'valid numeric amount', res_text.data)
+
+    # -------------------------------------------------------------
+    # 43. Security Session Termination & Cache Headers
+    # -------------------------------------------------------------
+    def test_50_security_session_termination_and_cache_headers(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        with self.client.session_transaction() as sess:
+            sess['user_id'] = user['user_id']
+            sess['email'] = user['email']
+            sess['name'] = user['name']
+            sess['role'] = 'user' # Regular user
+
+        # 1. Non-admin forbidden from admin routes
+        admin_resp = self.client.get('/admin')
+        self.assertEqual(admin_resp.status_code, 403)
+
+        # 2. Check no-cache security headers on protected routes
+        dash_resp = self.client.get('/dashboard')
+        self.assertEqual(dash_resp.status_code, 200)
+        self.assertIn('no-store', dash_resp.headers.get('Cache-Control', ''))
+
+        # 3. Logout terminates session
+        self.client.get('/logout')
+        with self.client.session_transaction() as sess:
+            self.assertNotIn('user_id', sess)
+
+    # -------------------------------------------------------------
+    # 44. Voice NLP Error Tolerance & Unknown Intent Safety
+    # -------------------------------------------------------------
+    def test_51_voice_nlp_error_tolerance_and_unknown_intents(self):
+        user = models.get_user_by_email('aayush@lifeboard.com')
+        uid = user['user_id']
+
+        # 1. Empty and whitespace-only input safely rejected
+        empty_inputs = ["", "   ", "\t\n"]
+        for phrase in empty_inputs:
+            succ, msg, meta = models.parse_and_execute_voice_command(uid, phrase)
+            self.assertFalse(succ)
+            self.assertIn("No speech recognized", msg)
+            self.assertIsNone(meta)
+
+        # 2. General spoken thoughts without explicit keywords gracefully fallback to Task creation
+        succ, msg, meta = models.parse_and_execute_voice_command(uid, "discuss presentation with professor")
+        self.assertTrue(succ)
+        self.assertIsNotNone(meta)
+        self.assertEqual(meta['type'], 'Task')
+
 
 if __name__ == '__main__':
     unittest.main()
+
+
 
 
 

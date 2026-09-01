@@ -27,6 +27,34 @@
 </div>
 {% endif %}
 
+<!-- Month Navigation Toolbar -->
+<div class="card" style="margin-bottom: 20px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <a href="{{ url_for('finance', month=prev_month, year=prev_year) }}" class="btn btn-secondary btn-sm" title="Previous Month">
+      <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    <div style="font-size: 16px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px; min-width: 170px; justify-content: center;">
+      <i class="fa-regular fa-calendar" style="color: var(--primary);"></i>
+      <span>{{ month_name }}</span>
+    </div>
+    <a href="{{ url_for('finance', month=next_month, year=next_year) }}" class="btn btn-secondary btn-sm" title="Next Month">
+      <i class="fa-solid fa-chevron-right"></i>
+    </a>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 8px;">
+    {% if not is_current_month %}
+      <a href="{{ url_for('finance') }}" class="btn btn-primary btn-sm" style="font-size: 11.5px;">
+        <i class="fa-solid fa-rotate-left"></i> Back to Current Month
+      </a>
+    {% else %}
+      <span class="badge badge-primary" style="font-size: 11px; padding: 6px 10px;">
+        <i class="fa-solid fa-circle" style="font-size: 8px; margin-right: 4px; color: var(--success);"></i> Current Month
+      </span>
+    {% endif %}
+  </div>
+</div>
+
 <!-- Finance Summary Cards Row -->
 <div class="grid-4">
   <div class="card">
@@ -72,7 +100,7 @@
     <div class="card-header">
       <h3 class="card-title">
         <i class="fa-solid fa-chart-pie"></i>
-        <span>Spending by Category (Current Month)</span>
+        <span>Spending by Category ({{ month_name }})</span>
       </h3>
     </div>
     <div style="height: 250px;">
@@ -99,7 +127,7 @@
   <div class="card-header">
     <h3 class="card-title">
       <i class="fa-solid fa-receipt"></i>
-      <span>Expense Ledger</span>
+      <span>Expense Ledger ({{ month_name }})</span>
     </h3>
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
       <button class="btn btn-secondary btn-sm" onclick="openModal('importExpenseCsvModal')" title="Import Expenses from CSV">

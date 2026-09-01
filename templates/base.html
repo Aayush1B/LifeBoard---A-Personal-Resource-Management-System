@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <!-- Custom Stylesheets -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=3.1">
   
   <!-- Chart.js 4.x CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -166,8 +166,8 @@
 
           <!-- In-App Notification Center Dropdown -->
           <div style="position: relative;">
-            <button class="theme-toggle-btn" id="notificationBtn" onclick="toggleNotificationDropdown()" title="Notifications">
-              <i class="fa-regular fa-bell"></i>
+            <button class="theme-toggle-btn" id="notificationBtn" onclick="toggleNotificationDropdown()" title="Notifications" aria-label="Notifications">
+              <i class="fa-solid fa-bell"></i>
               {% if unread_notifications_count > 0 %}
                 <span class="notification-badge" id="notifBellBadge">{{ unread_notifications_count }}</span>
               {% endif %}
@@ -182,6 +182,23 @@
                 </div>
                 <button type="button" class="btn-clear-all" onclick="clearAllNotifs(event)" title="Clear all alerts" style="background: none; border: none; font-size: 11.5px; color: var(--primary); cursor: pointer; font-weight: 700; padding: 2px 6px;">Clear all</button>
               </div>
+
+              <!-- Native Desktop & Phone Push Notifications Quick-Control Bar (Visible for 60s per session/refresh) -->
+              <div class="native-notif-banner" id="nativeNotifBanner">
+                <div class="native-notif-info">
+                  <i class="fa-solid fa-bell" id="nativeNotifIcon" style="color: var(--primary); font-size: 13px;"></i>
+                  <span id="nativeNotifStatusText" style="font-size: 11.5px; font-weight: 700;">Push Notifications</span>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <button type="button" class="btn-native-test" id="btnTestNativeNotif" onclick="sendTestNativeNotification(event)" title="Send test browser notification">
+                    <i class="fa-solid fa-play" style="font-size: 10px;"></i> Test
+                  </button>
+                  <button type="button" class="btn-native-enable" id="btnToggleNativeNotif" onclick="togglePushNotificationState(event)">
+                    Enable
+                  </button>
+                </div>
+              </div>
+
               <div class="notification-list" id="notifListContainer">
                 {% if notifications %}
                   {% for n in notifications %}
@@ -757,9 +774,9 @@
   {% endif %}
 
   <!-- Core JavaScript Scripts -->
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/modules.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}?v=3.1"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v=3.1"></script>
+  <script src="{{ url_for('static', filename='js/modules.js') }}?v=3.1"></script>
 
   {% block scripts %}{% endblock %}
 </body>
